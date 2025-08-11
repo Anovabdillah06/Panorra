@@ -17,12 +17,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest-playwright pytest-rerunfailures
+          pip install pytest-rerunfailures playwright
 
       - name: Install Playwright browsers
-        run: playwright install
+        run: python -m playwright install --with-deps
 
-      - name: Run tests (headed mode with retry)
+      - name: Run tests (headless on CI, headed local)
         env:
-          HEADLESS: "false"
-        run: pytest -m "unit or smoke or regression" --headed --slowmo 300 --reruns 2 --reruns-delay 3
+          CI: "true"
+        run: |
+          pytest -m "unit or smoke or regression" --reruns 2 --reruns-delay 3

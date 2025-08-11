@@ -59,3 +59,13 @@ def pytest_runtest_makereport(item, call):
                 print(f"\n[Screenshot saved] {path}")
             except Exception as e:
                 print(f"\n[Failed saving screenshot] {e}")
+
+@pytest.fixture
+def page():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=os.getenv("CI", "false").lower() == "true"
+        )
+        page = browser.new_page()
+        yield page
+        browser.close()
