@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v3
@@ -18,18 +18,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install Playwright browsers
-        run: playwright install --with-deps
-
-      # Start virtual display
-      - name: Start Xvfb
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
-          Xvfb :99 -screen 0 1920x1080x24 &
-        shell: bash
+        run: playwright install
 
       - name: Run tests (headed mode)
         env:
-          DISPLAY: :99
           HEADLESS: "false"
         run: pytest
