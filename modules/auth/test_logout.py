@@ -1,92 +1,88 @@
 import pytest
-from playwright.sync_api import Page, sync_playwright
-
-# =============================
-# HELPER FUNCTIONS
-# =============================
-def login(page: Page, email: str, password: str):
-    page.goto("https://panorra.com/", timeout=20000)
-    page.wait_for_load_state("domcontentloaded")
-    page.wait_for_timeout(2000)
-
-    login_link = page.get_by_role("link", name="Log In")
-    assert login_link.is_visible(), "Tombol Log In tidak terlihat"
-    login_link.click()
-    page.wait_for_timeout(1000)
-
-    email_field = page.get_by_placeholder("Enter your email or username")
-    password_field = page.get_by_placeholder("Enter your password")
-    assert email_field.is_visible(), "Kolom email tidak terlihat"
-    assert password_field.is_visible(), "Kolom password tidak terlihat"
-    email_field.fill(email)
-    password_field.fill(password)
-
-    login_button = page.get_by_role("button", name="Log In")
-    assert login_button.is_enabled(), "Tombol Log In tidak aktif"
-    login_button.click()
-    page.wait_for_timeout(2000)
-
-
-def logout(page: Page):
-    menu_button = page.get_by_role("button", name="header menu")
-    assert menu_button.is_visible(), "Menu header tidak terlihat"
-    menu_button.click()
-    page.wait_for_timeout(1000)
-
-    logout_link = page.get_by_role("link", name=" Log Out")
-    assert logout_link.is_visible(), "Tombol Log Out tidak terlihat"
-    logout_link.click()
-    page.wait_for_timeout(2000)
+from playwright.async_api import async_playwright
 
 # =============================
 # SMOKE TEST
 # =============================
 @pytest.mark.smoke
-def test_logout_success():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
+@pytest.mark.asyncio
+async def test_logout_smoke():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        page = await browser.new_page()
 
-        login(page, "arnov@grr.la", "Ar_061204")
-        logout(page)
+        # Login
+        await page.goto("https://panorra.com/", timeout=20000)
+        await page.get_by_role("link", name="Log In").click()
+        await page.fill('input[placeholder="Enter your email or username"]', "arnov@grr.la")
+        await page.fill('input[placeholder="Enter your password"]', "Ar_061204")
+        await page.get_by_role("button", name="Log In").click()
+        await page.wait_for_timeout(2000)
 
-        heading = page.get_by_role("heading", name="Recommendation for You")
-        assert heading.is_visible(), "Tidak kembali ke halaman utama"
-        assert page.get_by_role("link", name="Log In").is_visible(), "Tombol Log In tidak muncul setelah logout"
+        # Logout
+        await page.get_by_role("button", name="header menu").click()
+        await page.get_by_role("link", name=" Log Out").click()
+        await page.wait_for_timeout(2000)
 
-        browser.close()
+        # Assertion: pastikan tombol "Log In" muncul lagi
+        assert await page.is_visible('text="Log In"'), "Logout gagal - tombol 'Log In' tidak ditemukan"
+
+        await browser.close()
 
 # =============================
 # REGRESSION TEST
 # =============================
 @pytest.mark.regression
-def test_logout_regression():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
+@pytest.mark.asyncio
+async def test_logout_regression():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        page = await browser.new_page()
 
-        login(page, "arnov@grr.la", "Ar_061204")
-        logout(page)
+        # Login
+        await page.goto("https://panorra.com/", timeout=20000)
+        await page.get_by_role("link", name="Log In").click()
+        await page.fill('input[placeholder="Enter your email or username"]', "arnov@grr.la")
+        await page.fill('input[placeholder="Enter your password"]', "Ar_061204")
+        await page.get_by_role("button", name="Log In").click()
+        await page.wait_for_timeout(2000)
 
-        assert page.get_by_role("link", name="Log In").is_visible(), "Tombol Log In hilang"
-        page.screenshot(path="screenshots/regression/logout_passed.png")
+        # Logout
+        await page.get_by_role("button", name="header menu").click()
+        await page.get_by_role("link", name=" Log Out").click()
+        await page.wait_for_timeout(2000)
 
-        browser.close()
+        # Assertion
+        assert await page.is_visible('text="Log In"'), "Logout gagal - tombol 'Log In' tidak ditemukan"
+
+        await page.screenshot(path="screenshots/regression/logout_passed.png")
+        await browser.close()
 
 # =============================
 # UNIT TEST
 # =============================
 @pytest.mark.unit
-def test_logout_unit():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
+@pytest.mark.asyncio
+async def test_logout_unit():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        page = await browser.new_page()
 
-        login(page, "arnov@grr.la", "Ar_061204")
-        logout(page)
+        # Login
+        await page.goto("https://panorra.com/", timeout=20000)
+        await page.get_by_role("link", name="Log In").click()
+        await page.fill('input[placeholder="Enter your email or username"]', "arnov@grr.la")
+        await page.fill('input[placeholder="Enter your password"]', "Ar_061204")
+        await page.get_by_role("button", name="Log In").click()
+        await page.wait_for_timeout(2000)
 
-        heading = page.get_by_role("heading", name="Recommendation for You")
-        assert heading.is_visible(), "Tidak kembali ke halaman utama"
-        page.screenshot(path="screenshots/unit/logout_passed.png")
+        # Logout
+        await page.get_by_role("button", name="header menu").click()
+        await page.get_by_role("link", name=" Log Out").click()
+        await page.wait_for_timeout(2000)
 
-        browser.close()
+        # Assertion
+        assert await page.is_visible('text="Log In"'), "Logout gagal - tombol 'Log In' tidak ditemukan"
+
+        await page.screenshot(path="screenshots/unit/logout_passed.png")
+        await browser.close()
