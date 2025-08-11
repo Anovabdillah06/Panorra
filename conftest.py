@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 
 load_dotenv()
 BASE_URL = os.getenv('BASE_URL', 'https://dev.panorra.com/')
-HEADLESS = os.getenv('HEADLESS', 'false').lower() in ('1', 'true', 'yes')
+HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
 
 @pytest.fixture(scope='session')
@@ -17,7 +17,10 @@ def playwright_instance():
 
 @pytest.fixture(scope='session')
 def browser(playwright_instance):
-    browser = playwright_instance.chromium.launch(headless=HEADLESS, slow_mo=0 if HEADLESS else 50)
+    browser = playwright_instance.chromium.launch(
+        headless=HEADLESS,
+        slow_mo=0 if HEADLESS else 50
+    )
     yield browser
     browser.close()
 
