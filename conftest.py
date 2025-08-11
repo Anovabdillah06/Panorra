@@ -1,4 +1,5 @@
 import os
+import shutil
 import pytest
 from pathlib import Path
 from dotenv import load_dotenv
@@ -32,22 +33,30 @@ def context(browser, request):
     videos_dir = Path("videos") / marks_str
     videos_dir.mkdir(parents=True, exist_ok=True)
 
-    # Record video
     ctx = browser.new_context(record_video_dir=str(videos_dir))
     request.node._video_dir = videos_dir
     request.node._video_name = f"{test_name}.webm"
 
     yield ctx
 
-    # Rename video agar sesuai nama test
+    # Rename dan copy video ke root
     try:
         for page in ctx.pages:
             video = page.video
             if video:
                 path = Path(video.path())
                 new_path = request.node._video_dir / request.node._video_name
+                if new_path.exists():
+                    new_path.unlink()  # hapus kalau sudah ada
                 path.rename(new_path)
+
+                # Copy ke folder root /videos
+                root_video_dir = Path("videos_root")
+                root_video_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(new_path, root_video_dir / new_path.name)
+
                 print(f"[Video saved] {new_path}")
+                print(f"[Video copied to root] {root_video_dir / new_path.name}")
     except Exception as e:
         print(f"[Video save error] {e}")
 
@@ -81,7 +90,17 @@ def pytest_runtest_makereport(item, call):
             screenshot_path = screenshots_dir / filename
 
             try:
+                # Simpan di folder mark
+                if screenshot_path.exists():
+                    screenshot_path.unlink()
                 page.screenshot(path=str(screenshot_path))
                 print(f"[Screenshot saved] {screenshot_path}")
+
+                # Copy ke root
+                root_ss_dir = Path("screenshots_root")
+                root_ss_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(screenshot_path, root_ss_dir / filename)
+                print(f"[Screenshot copied to root] {root_ss_dir / filename}")
+
             except Exception as e:
                 print(f"[Screenshot error] {e}")
