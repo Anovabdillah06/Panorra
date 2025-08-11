@@ -17,10 +17,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest-rerunfailures
+          pip install pytest-playwright pytest-rerunfailures
 
       - name: Install Playwright browsers
-        run: playwright install --with-deps
+        run: playwright install
 
       - name: Run tests (headed mode with retry)
         env:
