@@ -24,16 +24,33 @@ def browser(playwright_instance):
 
 @pytest.fixture(scope='function')
 def context(browser, request):
-    # Ambil marks & feature
+    # Ambil mark & nama fungsi test
     marks = [mark.name for mark in request.node.iter_markers()]
     marks_str = "_".join(marks) if marks else "nomark"
+    test_name = request.node.name
 
-    feature_name = Path(request.node.fspath).stem  # nama file test
-    videos_dir = Path("videos") / feature_name / marks_str
+    videos_dir = Path("videos") / marks_str
     videos_dir.mkdir(parents=True, exist_ok=True)
 
+    # Record video
     ctx = browser.new_context(record_video_dir=str(videos_dir))
+    request.node._video_dir = videos_dir
+    request.node._video_name = f"{test_name}.webm"
+
     yield ctx
+
+    # Rename video agar sesuai nama test
+    try:
+        for page in ctx.pages:
+            video = page.video
+            if video:
+                path = Path(video.path())
+                new_path = request.node._video_dir / request.node._video_name
+                path.rename(new_path)
+                print(f"[Video saved] {new_path}")
+    except Exception as e:
+        print(f"[Video save error] {e}")
+
     ctx.close()
 
 @pytest.fixture(scope='function')
@@ -46,18 +63,25 @@ def page(context, request):
     except Exception:
         pass
 
-# Screenshot setiap test
+# Screenshot tiap test
 @pytest.hookimpl
 def pytest_runtest_makereport(item, call):
     if call.when == 'call':
         page = getattr(item, 'page', None)
         if page:
             status = "passed" if call.excinfo is None else "failed"
-            screenshots_dir = Path('screenshots') / status
+
+            marks = [mark.name for mark in item.iter_markers()]
+            marks_str = "_".join(marks) if marks else "nomark"
+
+            screenshots_dir = Path('screenshots') / marks_str
             screenshots_dir.mkdir(parents=True, exist_ok=True)
-            path = screenshots_dir / f"{item.name}_{status}.png"
+
+            filename = f"{item.name}_{status}.png"
+            screenshot_path = screenshots_dir / filename
+
             try:
-                page.screenshot(path=str(path))
-                print(f"\n[Screenshot saved] {path}")
+                page.screenshot(path=str(screenshot_path))
+                print(f"[Screenshot saved] {screenshot_path}")
             except Exception as e:
-                print(f"\n[Failed saving screenshot] {e}")
+                print(f"[Screenshot error] {e}")
