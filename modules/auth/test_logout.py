@@ -1,4 +1,3 @@
-import re
 import pytest
 from playwright.async_api import Page
 
@@ -7,7 +6,6 @@ from playwright.async_api import Page
 async def test_smoke_logout(page: Page):
     await page.goto("https://panorra.com/", timeout=60000)
     await page.wait_for_load_state("domcontentloaded")
-
     assert "Panorra" in await page.title()
 
     await page.get_by_role("link", name="Log In").click()
@@ -31,7 +29,6 @@ async def test_smoke_logout(page: Page):
 async def test_visible_logged_out(page: Page):
     await page.goto("https://panorra.com/", timeout=60000)
     await page.wait_for_load_state("domcontentloaded")
-
     assert "Panorra" in await page.title()
 
     await page.get_by_role("link", name="Log In").click()
@@ -56,7 +53,6 @@ async def test_visible_logged_out(page: Page):
 async def test_unit_logout(page: Page):
     await page.goto("https://panorra.com/", timeout=60000)
     await page.wait_for_load_state("domcontentloaded")
-
     assert "Panorra" in await page.title()
 
     await page.get_by_role("link", name="Log In").click()
@@ -69,7 +65,6 @@ async def test_unit_logout(page: Page):
     await page.get_by_role("heading", name="Recommendation for You").wait_for(state="visible")
 
     await page.get_by_role("button", name="header menu").click()
-
     logout_link = page.get_by_role("link", name="Log Out")
     await logout_link.wait_for(state="visible")
     assert await logout_link.is_visible()
