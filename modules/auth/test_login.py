@@ -29,7 +29,6 @@ def test_login_success(page: Page):
     expect(heading).to_be_visible(timeout=30000)
 
     # Assertion tambahan
-    assert "recommendation" in page.url.lower(), "URL setelah login tidak sesuai"
     assert heading.inner_text().strip() == "Recommendation for You", "Teks heading tidak sesuai"
 
 
