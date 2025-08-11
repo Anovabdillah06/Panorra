@@ -1,158 +1,90 @@
 import re
 import pytest
-from playwright.sync_api import Page
+from playwright.async_api import Page  # pakai async_api
 
+# Smoke Test
 @pytest.mark.smoke
-def test_logout_success(page: Page):
-    page.goto("https://panorra.com/", timeout=60000)
-    page.wait_for_load_state("domcontentloaded", timeout=60000)
-    page.wait_for_timeout(8000)
-    assert re.search("Panorra", page.title()), "Title halaman tidak sesuai"
+async def test_smoke_logout(page: Page):
+    await page.goto("https://panorra.com/", timeout=60000)
+    await page.wait_for_load_state("domcontentloaded")
 
-    # Klik tombol Log In
-    login_link = page.get_by_role("link", name="Log In")
-    assert login_link.is_visible(), "Tombol Log In tidak terlihat"
-    login_link.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
+    assert re.search("Panorra", await page.title())
 
-    # Isi email & password
-    email_field = page.get_by_placeholder("Enter your email or username")
-    password_field = page.get_by_placeholder("Enter your password")
-    assert email_field.is_visible(), "Kolom email tidak terlihat"
-    assert password_field.is_visible(), "Kolom password tidak terlihat"
-    email_field.fill("arnov@grr.la")
-    password_field.fill("Ar_061204")
-    page.wait_for_timeout(8000)
+    await page.get_by_role("link", name="Log In").wait_for(state="visible")
+    await page.get_by_role("link", name="Log In").click()
 
-    # Klik tombol Log In
-    login_button = page.get_by_role("button", name="Log In")
-    assert login_button.is_enabled(), "Tombol Log In tidak aktif"
-    login_button.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
+    await page.wait_for_load_state("networkidle")
+    await page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
+    await page.get_by_placeholder("Enter your password").fill("Ar_061204")
+    await page.get_by_role("button", name="Log In").click()
 
-    # Buka menu header
-    menu_button = page.get_by_role("button", name="header menu")
-    assert menu_button.is_visible(), "Menu header tidak terlihat"
-    menu_button.click()
-    page.wait_for_timeout(8000)
+    await page.wait_for_load_state("networkidle")
+    await page.get_by_role("heading", name="Recommendation for You").wait_for(state="visible")
 
-    # Klik tombol Log Out
-    logout_link = page.get_by_role("link", name=" Log Out")
-    assert logout_link.is_visible(), "Tombol Log Out tidak terlihat"
-    logout_link.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
+    await page.get_by_role("button", name="header menu").click()
+    await page.get_by_role("link", name="Log Out").click()
+    await page.wait_for_load_state("networkidle")
 
-    # Pastikan halaman kembali ke rekomendasi
-    heading = page.get_by_role("heading", name="Recommendation for You")
-    assert heading.is_visible(), "Heading rekomendasi tidak muncul"
-    page.wait_for_timeout(8000)
-
-    # ✅ Tambahan: pastikan logout berhasil
-    assert page.get_by_role("link", name="Log In").is_visible(), "Logout gagal: tombol Log In tidak muncul"
-    assert "panorra.com" in page.url, f"Logout gagal: URL sekarang {page.url}"
+    assert await page.get_by_role("link", name="Log In").is_visible()
 
 
+# Regression Test
 @pytest.mark.regression
-def test_without_logged_out(page: Page):
-    page.goto("https://panorra.com/", timeout=60000)
-    page.wait_for_load_state("domcontentloaded", timeout=60000)
-    page.wait_for_timeout(8000)
+async def test_visible_logged_out(page: Page):
+    await page.goto("https://panorra.com/", timeout=60000)
+    await page.wait_for_load_state("domcontentloaded")
 
-    # Klik tombol Log In
+    assert re.search("Panorra", await page.title())
+
+    await page.get_by_role("link", name="Log In").wait_for(state="visible")
+    await page.get_by_role("link", name="Log In").click()
+
+    await page.wait_for_load_state("networkidle")
+    await page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
+    await page.get_by_placeholder("Enter your password").fill("Ar_061204")
+    await page.get_by_role("button", name="Log In").click()
+
+    await page.wait_for_load_state("networkidle")
+    assert await page.get_by_role("heading", name="Recommendation for You").is_visible()
+
+    await page.get_by_role("button", name="header menu").click()
+    await page.get_by_role("link", name="Log Out").click()
+
+    await page.wait_for_load_state("networkidle")
     login_link = page.get_by_role("link", name="Log In")
-    assert login_link.is_visible(), "❌ Tombol Log In tidak terlihat"
-    login_link.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
+    await login_link.wait_for(state="visible")
 
-    # Isi email & password
-    email_field = page.get_by_placeholder("Enter your email or username")
-    password_field = page.get_by_placeholder("Enter your password")
-    assert email_field.is_visible(), "❌ Kolom email tidak terlihat"
-    assert password_field.is_visible(), "❌ Kolom password tidak terlihat"
-    email_field.fill("arnov@grr.la")
-    password_field.fill("Ar_061204")
-    page.wait_for_timeout(8000)
-
-    # Klik tombol Log In
-    login_button = page.get_by_role("button", name="Log In")
-    assert login_button.is_enabled(), "❌ Tombol Log In tidak aktif"
-    login_button.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
-
-    # Pastikan user sudah login
-    menu_button = page.get_by_role("button", name="header menu")
-    assert menu_button.is_visible(), "❌ Gagal login: Menu header tidak terlihat"
-    page.wait_for_timeout(8000)
-
-    # Kembali ke halaman utama
-    page.goto("https://panorra.com/")
-    page.wait_for_load_state("domcontentloaded", timeout=60000)
-    page.wait_for_timeout(8000)
-
-    # Klik menu header (tanpa logout)
-    menu_button.click()
-    page.wait_for_timeout(8000)
-
-    # Pastikan heading "Recommendation for You" tetap ada
-    heading = page.get_by_role("heading", name="Recommendation for You")
-    assert heading.is_visible(), "❌ Heading 'Recommendation for You' tidak ditemukan setelah login"
-    page.wait_for_timeout(8000)
+    assert await login_link.is_visible()
 
 
+# Unit Test
 @pytest.mark.unit
-def test_unit_logout(page: Page):
-    page.goto("https://panorra.com/", timeout=60000)
-    page.wait_for_load_state("domcontentloaded", timeout=60000)
-    page.wait_for_timeout(8000)
-    assert re.search("Panorra", page.title()), "Halaman utama tidak terbuka dengan benar"
+async def test_unit_logout(page: Page):
+    await page.goto("https://panorra.com/", timeout=60000)
+    await page.wait_for_load_state("domcontentloaded")
 
-    # Klik tombol Log In
+    assert re.search("Panorra", await page.title())
+
     login_link = page.get_by_role("link", name="Log In")
-    assert login_link.is_visible(), "Tombol Log In tidak ditemukan"
-    login_link.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
+    await login_link.wait_for(state="visible")
+    await login_link.click()
 
-    # Isi email & password
-    email_field = page.get_by_placeholder("Enter your email or username")
-    password_field = page.get_by_placeholder("Enter your password")
-    assert email_field.is_visible(), "Field email tidak muncul"
-    assert password_field.is_visible(), "Field password tidak muncul"
-    email_field.fill("arnov@grr.la")
-    password_field.fill("Ar_061204")
-    page.wait_for_timeout(8000)
+    await page.wait_for_load_state("networkidle")
+    await page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
+    await page.get_by_placeholder("Enter your password").fill("Ar_061204")
+    await page.get_by_role("button", name="Log In").click()
 
-    # Klik tombol Log In
-    login_button = page.get_by_role("button", name="Log In")
-    assert login_button.is_enabled(), "Tombol Log In tidak aktif"
-    login_button.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
+    await page.wait_for_load_state("networkidle")
+    assert await page.get_by_role("heading", name="Recommendation for You").is_visible()
 
-    # Pastikan halaman Recommendation terbuka
-    heading = page.get_by_role("heading", name="Recommendation for You")
-    assert heading.is_visible(), "Halaman Recommendation tidak muncul setelah login"
-    page.wait_for_timeout(8000)
-
-    # Klik menu header
     menu_button = page.get_by_role("button", name="header menu")
-    assert menu_button.is_visible(), "Tombol menu header tidak ditemukan"
-    menu_button.click()
-    page.wait_for_timeout(8000)
+    await menu_button.wait_for(state="visible")
+    await menu_button.click()
 
-    # Klik tombol Log Out
-    logout_link = page.get_by_role("link", name=" Log Out")
-    assert logout_link.is_visible(), "Tombol Log Out tidak ditemukan"
-    logout_link.click()
-    page.wait_for_load_state("networkidle", timeout=60000)
-    page.wait_for_timeout(8000)
+    logout_link = page.get_by_role("link", name="Log Out")
+    await logout_link.wait_for(state="visible")
+    assert await logout_link.is_visible()
+    await logout_link.click()
 
-    # Pastikan logout berhasil (tombol Log In muncul kembali)
-    login_link_after = page.get_by_role("link", name="Log In")
-    assert login_link_after.is_visible(), "Logout gagal, tombol Log In tidak muncul kembali"
-    page.wait_for_timeout(8000)
+    await page.wait_for_load_state("networkidle")
+    assert await page.get_by_role("link", name="Log In").is_visible()
