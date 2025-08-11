@@ -28,7 +28,7 @@ def context(browser, request):
     # Ambil mark & nama fungsi test (def test_xxx)
     marks = [mark.name for mark in request.node.iter_markers()]
     marks_str = "_".join(marks) if marks else "nomark"
-    test_name = request.node.name  # ini sudah sama dengan nama def test_xxx
+    test_name = request.node.name  # nama def test_xxx
 
     # Folder video berdasarkan mark
     videos_dir = Path("videos") / marks_str
@@ -36,7 +36,7 @@ def context(browser, request):
 
     ctx = browser.new_context(record_video_dir=str(videos_dir))
     request.node._video_dir = videos_dir
-    request.node._video_name = f"{test_name}.webm"
+    request.node._video_name = f"{marks_str}_{test_name}.webm"
 
     yield ctx
 
@@ -88,7 +88,7 @@ def pytest_runtest_makereport(item, call):
             screenshots_dir = Path('screenshots') / marks_str
             screenshots_dir.mkdir(parents=True, exist_ok=True)
 
-            filename = f"{item.name}_{status}.png"
+            filename = f"{marks_str}_{item.name}_{status}.png"
             screenshot_path = screenshots_dir / filename
 
             try:
