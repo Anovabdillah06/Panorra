@@ -1,7 +1,5 @@
 import pytest
 from playwright.sync_api import Page, sync_playwright
-from playwright.async_api import async_playwright
-
 
 # =============================
 # HELPER FUNCTIONS
@@ -40,19 +38,23 @@ def logout(page: Page):
     logout_link.click()
     page.wait_for_timeout(2000)
 
-
 # =============================
 # SMOKE TEST
 # =============================
 @pytest.mark.smoke
-def test_logout_success(page: Page):
-    login(page, "arnov@grr.la", "Ar_061204")
-    logout(page)
+def test_logout_success():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page()
 
-    heading = page.get_by_role("heading", name="Recommendation for You")
-    assert heading.is_visible(), "Tidak kembali ke halaman utama"
-    assert page.get_by_role("link", name="Log In").is_visible(), "Tombol Log In tidak muncul setelah logout"
+        login(page, "arnov@grr.la", "Ar_061204")
+        logout(page)
 
+        heading = page.get_by_role("heading", name="Recommendation for You")
+        assert heading.is_visible(), "Tidak kembali ke halaman utama"
+        assert page.get_by_role("link", name="Log In").is_visible(), "Tombol Log In tidak muncul setelah logout"
+
+        browser.close()
 
 # =============================
 # REGRESSION TEST
@@ -70,7 +72,6 @@ def test_logout_regression():
         page.screenshot(path="screenshots/regression/logout_passed.png")
 
         browser.close()
-
 
 # =============================
 # UNIT TEST
