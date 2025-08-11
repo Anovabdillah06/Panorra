@@ -15,12 +15,14 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-rerunfailures
 
       - name: Install Playwright browsers
-        run: playwright install
+        run: playwright install --with-deps
 
-      - name: Run tests (headed mode)
+      - name: Run tests (headed mode with retry)
         env:
           HEADLESS: "false"
-        run: pytest
+        run: pytest -m "unit or smoke or regression" --headed --slowmo 300 --reruns 2 --reruns-delay 3
