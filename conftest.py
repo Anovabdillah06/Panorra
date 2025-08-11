@@ -25,11 +25,12 @@ def browser(playwright_instance):
 
 @pytest.fixture(scope='function')
 def context(browser, request):
-    # Ambil mark & nama fungsi test
+    # Ambil mark & nama fungsi test (def test_xxx)
     marks = [mark.name for mark in request.node.iter_markers()]
     marks_str = "_".join(marks) if marks else "nomark"
-    test_name = request.node.name
+    test_name = request.node.name  # ini sudah sama dengan nama def test_xxx
 
+    # Folder video berdasarkan mark
     videos_dir = Path("videos") / marks_str
     videos_dir.mkdir(parents=True, exist_ok=True)
 
@@ -39,7 +40,7 @@ def context(browser, request):
 
     yield ctx
 
-    # Rename dan copy video ke root
+    # Simpan & pindahkan video
     try:
         for page in ctx.pages:
             video = page.video
@@ -47,11 +48,11 @@ def context(browser, request):
                 path = Path(video.path())
                 new_path = request.node._video_dir / request.node._video_name
                 if new_path.exists():
-                    new_path.unlink()  # hapus kalau sudah ada
+                    new_path.unlink()
                 path.rename(new_path)
 
-                # Copy ke folder root /videos
-                root_video_dir = Path("videos_root")
+                # Copy ke root videos_root
+                root_video_dir = Path("videos_root") / marks_str
                 root_video_dir.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(new_path, root_video_dir / new_path.name)
 
@@ -72,9 +73,9 @@ def page(context, request):
     except Exception:
         pass
 
-# Screenshot tiap test
 @pytest.hookimpl
 def pytest_runtest_makereport(item, call):
+    """Screenshot setiap test (passed/failed)"""
     if call.when == 'call':
         page = getattr(item, 'page', None)
         if page:
@@ -83,6 +84,7 @@ def pytest_runtest_makereport(item, call):
             marks = [mark.name for mark in item.iter_markers()]
             marks_str = "_".join(marks) if marks else "nomark"
 
+            # Folder screenshot berdasarkan mark
             screenshots_dir = Path('screenshots') / marks_str
             screenshots_dir.mkdir(parents=True, exist_ok=True)
 
@@ -90,14 +92,13 @@ def pytest_runtest_makereport(item, call):
             screenshot_path = screenshots_dir / filename
 
             try:
-                # Simpan di folder mark
                 if screenshot_path.exists():
                     screenshot_path.unlink()
                 page.screenshot(path=str(screenshot_path))
                 print(f"[Screenshot saved] {screenshot_path}")
 
-                # Copy ke root
-                root_ss_dir = Path("screenshots_root")
+                # Copy ke root screenshots_root
+                root_ss_dir = Path("screenshots_root") / marks_str
                 root_ss_dir.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(screenshot_path, root_ss_dir / filename)
                 print(f"[Screenshot copied to root] {root_ss_dir / filename}")
