@@ -8,12 +8,10 @@ load_dotenv()
 BASE_URL = os.getenv('BASE_URL', 'https://dev.panorra.com/')
 HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
-
 @pytest.fixture(scope='session')
 def playwright_instance():
     with sync_playwright() as p:
         yield p
-
 
 @pytest.fixture(scope='session')
 def browser(playwright_instance):
@@ -24,13 +22,19 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
+@pytest.fixture(scope='function')
+def context(browser, request):
+    # Ambil marks & feature
+    marks = [mark.name for mark in request.node.iter_markers()]
+    marks_str = "_".join(marks) if marks else "nomark"
 
-@pytest.fixture(scope='session')
-def context(browser):
-    ctx = browser.new_context()
+    feature_name = Path(request.node.fspath).stem  # nama file test
+    videos_dir = Path("videos") / feature_name / marks_str
+    videos_dir.mkdir(parents=True, exist_ok=True)
+
+    ctx = browser.new_context(record_video_dir=str(videos_dir))
     yield ctx
     ctx.close()
-
 
 @pytest.fixture(scope='function')
 def page(context, request):
@@ -42,8 +46,7 @@ def page(context, request):
     except Exception:
         pass
 
-
-# Screenshot untuk semua hasil test (pass & fail)
+# Screenshot setiap test
 @pytest.hookimpl
 def pytest_runtest_makereport(item, call):
     if call.when == 'call':
@@ -52,20 +55,9 @@ def pytest_runtest_makereport(item, call):
             status = "passed" if call.excinfo is None else "failed"
             screenshots_dir = Path('screenshots') / status
             screenshots_dir.mkdir(parents=True, exist_ok=True)
-
             path = screenshots_dir / f"{item.name}_{status}.png"
             try:
                 page.screenshot(path=str(path))
                 print(f"\n[Screenshot saved] {path}")
             except Exception as e:
                 print(f"\n[Failed saving screenshot] {e}")
-
-@pytest.fixture
-def page():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=os.getenv("CI", "false").lower() == "true"
-        )
-        page = browser.new_page()
-        yield page
-        browser.close()

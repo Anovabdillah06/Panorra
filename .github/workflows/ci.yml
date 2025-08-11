@@ -31,11 +31,11 @@ jobs:
       # Upload screenshots as artifact
       - name: Upload Screenshots
         uses: actions/upload-artifact@v3
-        if: always() # pastikan tetap upload walau tes gagal
+        if: always() # tetap upload walau tes gagal
         with:
           name: playwright-screenshots
           path: screenshots/
-          retention-days: 30 # bisa download selama 7 hari
+          retention-days: 30 # simpan artefak selama 30 hari
 
       # Upload videos as artifact
       - name: Upload Videos
@@ -44,4 +44,4 @@ jobs:
         with:
           name: playwright-videos
           path: videos/
-          retention-days: 30
+          retention-days: 30 # simpan artefak selama 30 hari
