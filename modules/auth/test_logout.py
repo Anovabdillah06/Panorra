@@ -1,7 +1,9 @@
 import pytest
 from playwright.async_api import Page
 
-# Smoke Test
+# ==============================
+# SMOKE TEST
+# ==============================
 @pytest.mark.smoke
 async def test_smoke_logout(page: Page):
     await page.goto("https://panorra.com/", timeout=60000)
@@ -24,9 +26,11 @@ async def test_smoke_logout(page: Page):
     assert await page.get_by_role("link", name="Log In").is_visible()
 
 
-# Regression Test
+# ==============================
+# REGRESSION TEST
+# ==============================
 @pytest.mark.regression
-async def test_not_logged_out(page: Page):
+async def test_visible_logged_out(page: Page):
     await page.goto("https://panorra.com/", timeout=60000)
     await page.wait_for_load_state("domcontentloaded")
     assert "Panorra" in await page.title()
@@ -48,9 +52,11 @@ async def test_not_logged_out(page: Page):
     assert await login_link.is_visible()
 
 
-# Unit Test
+# ==============================
+# UNIT TEST
+# ==============================
 @pytest.mark.unit
-async def test_unit_logout(page: Page):
+async def test_logout_unit(page: Page):
     await page.goto("https://panorra.com/", timeout=60000)
     await page.wait_for_load_state("domcontentloaded")
     assert "Panorra" in await page.title()
