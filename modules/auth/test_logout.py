@@ -26,7 +26,7 @@ async def test_smoke_logout(page: Page):
 
 # Regression Test
 @pytest.mark.regression
-async def test_visible_logged_out(page: Page):
+async def test_not_logged_out(page: Page):
     await page.goto("https://panorra.com/", timeout=60000)
     await page.wait_for_load_state("domcontentloaded")
     assert "Panorra" in await page.title()
