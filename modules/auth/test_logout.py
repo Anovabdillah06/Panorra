@@ -40,7 +40,7 @@ def test_not_logged_out(page: Page):
 
     page.get_by_role("button", name="Profile").click()
 
-    # Cek URL
+    # Cek URL tetap di halaman utama
     assert re.match(r"https://panorra\.com/?", page.url)
 
 
