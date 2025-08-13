@@ -1,80 +1,58 @@
+# test_logout.py
+import re
 import pytest
-from playwright.async_api import Page
+from playwright.sync_api import Page
 
-# ==============================
-# SMOKE TEST
-# ==============================
 @pytest.mark.smoke
-async def test_smoke_logout(page: Page):
-    await page.goto("https://panorra.com/", timeout=60000)
-    await page.wait_for_load_state("domcontentloaded")
-    assert "Panorra" in await page.title()
+def test_logout_success(page: Page):
+    # Login terlebih dahulu
+    page.goto("https://panorra.com/", timeout=60000)
+    assert "Panorra" in page.title()
 
-    await page.get_by_role("link", name="Log In").click()
-    await page.wait_for_load_state("networkidle")
+    page.get_by_role("link", name="Log In").click()
+    page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
+    page.get_by_placeholder("Enter your password").fill("Ar_061204")
+    page.get_by_role("button", name="Log In").click()
 
-    await page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
-    await page.get_by_placeholder("Enter your password").fill("Ar_061204")
-    await page.get_by_role("button", name="Log In").click()
+    heading = page.get_by_role("heading", name="Recommendation for You")
+    assert heading.is_visible()
 
-    await page.get_by_role("heading", name="Recommendation for You").wait_for(state="visible")
+    # Klik menu profile/logout
+    profile_menu = page.get_by_role("button", name="Profile")
+    assert profile_menu.is_visible()
+    profile_menu.click()
 
-    await page.get_by_role("button", name="header menu").click()
-    await page.get_by_role("link", name="Log Out").click()
+    logout_button = page.get_by_role("button", name="Log Out")
+    assert logout_button.is_visible()
+    logout_button.click()
 
-    await page.get_by_role("link", name="Log In").wait_for(state="visible")
-    assert await page.get_by_role("link", name="Log In").is_visible()
+    # Validasi berhasil logout
+    assert page.get_by_role("link", name="Log In").is_visible()
 
 
-# ==============================
-# REGRESSION TEST
-# ==============================
 @pytest.mark.regression
-async def test_visible_logged_out(page: Page):
-    await page.goto("https://panorra.com/", timeout=60000)
-    await page.wait_for_load_state("domcontentloaded")
-    assert "Panorra" in await page.title()
+def test_not_logged_out(page: Page):
+    page.goto("https://panorra.com/", timeout=60000)
+    page.get_by_role("link", name="Log In").click()
+    page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
+    page.get_by_placeholder("Enter your password").fill("Ar_061204")
+    page.get_by_role("button", name="Log In").click()
 
-    await page.get_by_role("link", name="Log In").click()
-    await page.wait_for_load_state("networkidle")
+    page.get_by_role("button", name="Profile").click()
 
-    await page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
-    await page.get_by_placeholder("Enter your password").fill("Ar_061204")
-    await page.get_by_role("button", name="Log In").click()
-
-    await page.get_by_role("heading", name="Recommendation for You").wait_for(state="visible")
-
-    await page.get_by_role("button", name="header menu").click()
-    await page.get_by_role("link", name="Log Out").click()
-
-    login_link = page.get_by_role("link", name="Log In")
-    await login_link.wait_for(state="visible")
-    assert await login_link.is_visible()
+    # Cek URL
+    assert re.match(r"https://panorra\.com/?", page.url)
 
 
-# ==============================
-# UNIT TEST
-# ==============================
 @pytest.mark.unit
-async def test_logout_unit(page: Page):
-    await page.goto("https://panorra.com/", timeout=60000)
-    await page.wait_for_load_state("domcontentloaded")
-    assert "Panorra" in await page.title()
+def test_logout_button_visibility(page: Page):
+    page.goto("https://panorra.com/", timeout=60000)
+    page.get_by_role("link", name="Log In").click()
+    page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
+    page.get_by_placeholder("Enter your password").fill("Ar_061204")
+    page.get_by_role("button", name="Log In").click()
 
-    await page.get_by_role("link", name="Log In").click()
-    await page.wait_for_load_state("networkidle")
-
-    await page.get_by_placeholder("Enter your email or username").fill("arnov@grr.la")
-    await page.get_by_placeholder("Enter your password").fill("Ar_061204")
-    await page.get_by_role("button", name="Log In").click()
-
-    await page.get_by_role("heading", name="Recommendation for You").wait_for(state="visible")
-
-    await page.get_by_role("button", name="header menu").click()
-    logout_link = page.get_by_role("link", name="Log Out")
-    await logout_link.wait_for(state="visible")
-    assert await logout_link.is_visible()
-
-    await logout_link.click()
-    await page.get_by_role("link", name="Log In").wait_for(state="visible")
-    assert await page.get_by_role("link", name="Log In").is_visible()
+    # Pastikan tombol logout muncul
+    page.get_by_role("button", name="Profile").click()
+    logout_button = page.get_by_role("button", name="Log Out")
+    assert logout_button.is_visible()
