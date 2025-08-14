@@ -1,39 +1,17 @@
-name: Playwright Tests
+- name: Upload Screenshots
+  uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: screenshots
+    path: results/screenshots/**/*
+    retention-days: 30
+    if-no-files-found: warn
 
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pytest-rerunfailures playwright python-dotenv
-          playwright install
-
-      - name: Run tests with screenshot & video
-        env:
-          CI: "true"
-        run: |
-          pytest -m "unit or smoke or regression" --reruns 2 --reruns-delay 3
-
-      - name: Upload Screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshots
-          path: results/screenshots/**/*
-
-      - name: Upload Videos
-        uses: actions/upload-artifact@v4
-        with:
-          name: videos
-          path: results/videos/**/*
+- name: Upload Videos
+  uses: actions/upload-artifact@v4
+  if: always()
+  with:
+    name: videos
+    path: results/videos/**/*
+    retention-days: 30
+    if-no-files-found: warn
