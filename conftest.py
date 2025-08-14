@@ -5,7 +5,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
+# Load .env jika ada
 load_dotenv()
+
 BASE_URL = os.getenv('BASE_URL', 'https://dev.panorra.com/')
 HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
@@ -36,9 +38,9 @@ def context(browser, request):
     ctx = browser.new_context(record_video_dir=str(videos_dir))
     request.node._video_dir = videos_dir
     request.node._marks_str = marks_str
+    request.node.context = ctx  # penting agar pytest_runtest_makereport bisa akses
 
     yield ctx
-
     ctx.close()
 
 @pytest.fixture(scope='function')
@@ -89,20 +91,24 @@ def pytest_runtest_makereport(item, call):
                 for page in ctx.pages:
                     video = page.video
                     if video:
-                        path = Path(video.path())
-                        filename_video = f"{marks_str}_{item.name}_{status}.webm"
-                        new_path = Path("videos") / marks_str / filename_video
+                        try:
+                            path = Path(video.path())
+                            filename_video = f"{marks_str}_{item.name}_{status}.webm"
+                            new_path = Path("videos") / marks_str / filename_video
 
-                        if new_path.exists():
-                            new_path.unlink()
-                        path.rename(new_path)
-                        print(f"[Video saved] {new_path}")
+                            if new_path.exists():
+                                new_path.unlink()
+                            path.rename(new_path)
+                            print(f"[Video saved] {new_path}")
 
-                        # Copy ke root videos_root
-                        root_video_dir = Path("videos_root") / marks_str
-                        root_video_dir.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(new_path, root_video_dir / filename_video)
-                        print(f"[Video copied to root] {root_video_dir / filename_video}")
+                            # Copy ke root videos_root
+                            root_video_dir = Path("videos_root") / marks_str
+                            root_video_dir.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(new_path, root_video_dir / filename_video)
+                            print(f"[Video copied to root] {root_video_dir / filename_video}")
+
+                        except Exception as ve:
+                            print(f"[Video save error] {ve}")
 
             except Exception as e:
-                print(f"[Video save error] {e}")
+                print(f"[Video error] {e}")
