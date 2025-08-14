@@ -4,7 +4,6 @@ import pytest
 from pathlib import Path
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
-import time # Baris ini ditambahkan
 
 # Load .env jika ada
 load_dotenv()
@@ -28,7 +27,6 @@ def browser(playwright_instance):
 
 @pytest.fixture(scope='function')
 def context(browser, request):
-    # Ambil nama file dan mark
     module_name = Path(request.fspath).stem
     marks = [mark.name for mark in request.node.iter_markers()]
     marks_str = "_".join(marks) if marks else "nomark"
@@ -36,7 +34,7 @@ def context(browser, request):
     request.node._module_name = module_name
     request.node._marks_str = marks_str
     
-    # Buat context dengan video recording, video akan disimpan sementara
+    # Simpan video ke direktori sementara
     ctx = browser.new_context(record_video_dir="videos_temp")
     request.node.context = ctx 
 
@@ -55,13 +53,11 @@ def page(context, request):
 
 @pytest.hookimpl
 def pytest_runtest_makereport(item, call):
-    """Screenshot & Video untuk setiap test yang selesai"""
     if call.when == 'call':
         status = "passed" if call.excinfo is None else "failed"
         module_name = getattr(item, '_module_name', 'nomodule')
         marks_str = getattr(item, '_marks_str', 'nomark')
         
-        # Membuat direktori hasil dengan struktur: results/status/modul_name/marks_str/
         base_results_dir = Path("results")
         final_results_dir = base_results_dir / status / module_name / marks_str
         final_results_dir.mkdir(parents=True, exist_ok=True)
@@ -84,14 +80,11 @@ def pytest_runtest_makereport(item, call):
                 for p in ctx.pages:
                     video = p.video
                     if video:
-                        path_temp = Path(video.path())
                         filename_video = f"{item.name}.webm"
                         path_final = final_results_dir / filename_video
-
-                        # Tambahkan jeda 1 detik untuk memastikan file video sudah siap
-                        time.sleep(1) # BARIS PENTING UNTUK PERBAIKAN WINERROR 32
-
-                        shutil.move(path_temp, path_final)
+                        
+                        # Menggunakan video.save_as() untuk memastikan file selesai ditulis sebelum dipindahkan
+                        video.save_as(path_final)
                         print(f"[Video saved] {path_final}")
             except Exception as e:
                 print(f"[Video save error] {e}")
