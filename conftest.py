@@ -25,22 +25,48 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
+# Hook untuk simpan hasil report test
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    rep = outcome.get_result()
+    if rep.when == "call":
+        item.rep_call = rep
+
 @pytest.fixture(scope='function')
 def context(browser, request):
     module_name = Path(request.fspath).stem
     marks = [mark.name for mark in request.node.iter_markers()]
     marks_str = "_".join(marks) if marks else "nomark"
-    
+
     request.node._module_name = module_name
     request.node._marks_str = marks_str
-    
-    # Simpan video ke direktori sementara di root proyek
+
+    # Folder video sementara
     video_temp_dir = Path("videos_temp")
     video_temp_dir.mkdir(parents=True, exist_ok=True)
-    ctx = browser.new_context(record_video_dir=str(video_temp_dir))
-    request.node.context = ctx 
 
+    ctx = browser.new_context(record_video_dir=str(video_temp_dir))
+    request.node.context = ctx
     yield ctx
+
+    # Setelah test selesai, tentukan status
+    status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
+
+    final_video_dir = Path("results") / status / module_name / marks_str
+    final_video_dir.mkdir(parents=True, exist_ok=True)
+
+    for page in ctx.pages:
+        video = page.video
+        if video:
+            try:
+                filename_video = f"{request.node.name}.webm"
+                path_final = final_video_dir / filename_video
+                video.save_as(path_final)
+                print(f"[Video saved] {path_final}")
+            except Exception as e:
+                print(f"[Video save error] {e}")
+
     ctx.close()
 
 @pytest.fixture(scope='function')
@@ -53,43 +79,9 @@ def page(context, request):
     except Exception:
         pass
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    # Hook wrapper untuk menyimpan hasil laporan akhir
-    outcome = yield
-    report = outcome.get_result()
-    if report.when == 'call':
-        item.report = report
-
+# Bersihkan folder video sementara di akhir session
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session):
-    # Pindahkan video dari folder sementara ke folder hasil yang benar
-    for item in session.items:
-        context = getattr(item, 'context', None)
-        if context:
-            # Dapatkan laporan akhir tes
-            report = getattr(item, 'report', None)
-            if report:
-                status = "passed" if report.passed else "failed"
-                module_name = getattr(item, '_module_name', 'nomodule')
-                marks_str = getattr(item, '_marks_str', 'nomark')
-                
-                final_video_dir = Path("results") / status / module_name / marks_str
-                final_video_dir.mkdir(parents=True, exist_ok=True)
-                
-                for page in context.pages:
-                    video = page.video
-                    if video:
-                        try:
-                            filename_video = f"{item.name}.webm"
-                            path_final = final_video_dir / filename_video
-                            
-                            video.save_as(path_final)
-                            print(f"[Video saved] {path_final}")
-                        except Exception as e:
-                            print(f"[Video save error] {e}")
-
-    # Bersihkan folder sementara setelah semua tes selesai
     temp_dir = Path("videos_temp")
     if temp_dir.exists():
         shutil.rmtree(temp_dir)
