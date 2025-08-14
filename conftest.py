@@ -35,8 +35,10 @@ def context(browser, request):
     request.node._module_name = module_name
     request.node._marks_str = marks_str
     
-    # Simpan video ke direktori sementara
-    ctx = browser.new_context(record_video_dir="videos_temp")
+    # Simpan video ke direktori sementara di root proyek
+    video_temp_dir = Path(os.getcwd()) / "videos_temp"
+    video_temp_dir.mkdir(parents=True, exist_ok=True)
+    ctx = browser.new_context(record_video_dir=str(video_temp_dir))
     request.node.context = ctx 
 
     yield ctx
@@ -52,54 +54,41 @@ def page(context, request):
     except Exception:
         pass
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_makereport(item, call):
-    outcome = yield
-    report = outcome.get_result()
-    if report.when == 'call':
-        item.report = report
+    if call.when == 'call':
+        status = "passed" if call.excinfo is None else "failed"
+        module_name = getattr(item, '_module_name', 'nomodule')
+        marks_str = getattr(item, '_marks_str', 'nomark')
+        
+        # --- PERBAIKAN: Menggunakan jalur absolut untuk direktori hasil ---
+        base_results_dir = Path(os.getcwd()) / "results"
+        final_results_dir = base_results_dir / status / module_name / marks_str
+        final_results_dir.mkdir(parents=True, exist_ok=True)
+        # --- AKHIR PERBAIKAN ---
 
-@pytest.hookimpl
-def pytest_runtest_teardown(item, nextitem):
-    # Mengambil status dari report yang disimpan
-    status = "passed" if getattr(item, 'report', None) and item.report.passed else "failed"
-    
-    module_name = getattr(item, '_module_name', 'nomodule')
-    marks_str = getattr(item, '_marks_str', 'nomark')
-    
-    base_results_dir = Path("results")
-    final_results_dir = base_results_dir / status / module_name / marks_str
-    final_results_dir.mkdir(parents=True, exist_ok=True)
-    
-    # === Screenshot ===
-    page = getattr(item, 'page', None)
-    if page and page.is_closed():
-        try:
-            filename_ss = f"{item.name}.png"
-            screenshot_path = final_results_dir / filename_ss
-            page.screenshot(path=str(screenshot_path))
-            print(f"[Screenshot saved] {screenshot_path}")
-        except Exception as e:
-            print(f"[Screenshot error] {e}")
-            
-    # === Video ===
-    ctx = getattr(item, 'context', None)
-    if ctx:
-        try:
-            for p in ctx.pages:
-                video = p.video
-                if video:
-                    filename_video = f"{item.name}.webm"
-                    path_final = final_results_dir / filename_video
-                    
-                    video.save_as(path_final)
-                    print(f"[Video saved] {path_final}")
-        except Exception as e:
-            print(f"[Video save error] {e}")
+        # === Screenshot ===
+        page = getattr(item, 'page', None)
+        if page and not page.is_closed():
+            try:
+                filename_ss = f"{item.name}.png"
+                screenshot_path = final_results_dir / filename_ss
+                page.screenshot(path=str(screenshot_path))
+                print(f"[Screenshot saved] {screenshot_path}")
+            except Exception as e:
+                print(f"[Screenshot error] {e}")
 
-# Hook ini akan membersihkan folder sementara setelah semua tes selesai
-@pytest.hookimpl(trylast=True)
-def pytest_sessionfinish(session):
-    temp_dir = Path("videos_temp")
-    if temp_dir.exists():
-        shutil.rmtree(temp_dir)
+        # === Video ===
+        ctx = getattr(item, 'context', None)
+        if ctx:
+            try:
+                for p in ctx.pages:
+                    video = p.video
+                    if video:
+                        filename_video = f"{item.name}.webm"
+                        path_final = final_results_dir / filename_video
+                        
+                        video.save_as(path_final)
+                        print(f"[Video saved] {path_final}")
+            except Exception as e:
+                print(f"[Video save error] {e}")
