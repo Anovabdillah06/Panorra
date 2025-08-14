@@ -28,18 +28,12 @@ jobs:
 
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: test-screenshots
-          path: results/**/*.png
-          retention-days: 30
-          if-no-files-found: warn
+          name: screenshots
+          path: results/screenshots/**/*
 
       - name: Upload Videos
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: test-videos
-          path: results/**/*.webm
-          retention-days: 30
-          if-no-files-found: warn
+          name: videos
+          path: results/videos/**/*
