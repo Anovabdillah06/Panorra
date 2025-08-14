@@ -11,6 +11,11 @@ load_dotenv()
 BASE_URL = os.getenv('BASE_URL', 'https://dev.panorra.com/')
 HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
+@pytest.fixture(scope="session", autouse=True)
+def prepare_results_dir():
+    for folder in ["results/screenshots", "results/videos"]:
+        Path(folder).mkdir(parents=True, exist_ok=True)
+
 @pytest.fixture(scope='session')
 def playwright_instance():
     with sync_playwright() as p:
