@@ -4,6 +4,7 @@ import pytest
 from pathlib import Path
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
+import time # Baris ini ditambahkan
 
 # Load .env jika ada
 load_dotenv()
@@ -60,12 +61,10 @@ def pytest_runtest_makereport(item, call):
         module_name = getattr(item, '_module_name', 'nomodule')
         marks_str = getattr(item, '_marks_str', 'nomark')
         
-        # --- PERBAIKAN DI SINI ---
         # Membuat direktori hasil dengan struktur: results/status/modul_name/marks_str/
         base_results_dir = Path("results")
         final_results_dir = base_results_dir / status / module_name / marks_str
         final_results_dir.mkdir(parents=True, exist_ok=True)
-        # --- AKHIR PERBAIKAN ---
 
         # === Screenshot ===
         page = getattr(item, 'page', None)
@@ -88,6 +87,9 @@ def pytest_runtest_makereport(item, call):
                         path_temp = Path(video.path())
                         filename_video = f"{item.name}.webm"
                         path_final = final_results_dir / filename_video
+
+                        # Tambahkan jeda 1 detik untuk memastikan file video sudah siap
+                        time.sleep(1) # BARIS PENTING UNTUK PERBAIKAN WINERROR 32
 
                         shutil.move(path_temp, path_final)
                         print(f"[Video saved] {path_final}")
