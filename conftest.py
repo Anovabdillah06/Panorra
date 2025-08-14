@@ -31,14 +31,38 @@ def context(browser, request):
     marks = [mark.name for mark in request.node.iter_markers()]
     marks_str = "_".join(marks) if marks else "nomark"
     
-    request.node._module_name = module_name
-    request.node._marks_str = marks_str
+    # Menentukan path hasil di awal
+    final_results_dir = Path("results") / "temp" # Path sementara
+    final_results_dir.mkdir(parents=True, exist_ok=True)
     
-    # Simpan video ke direktori sementara
-    ctx = browser.new_context(record_video_dir="videos_temp")
+    # Buat context dengan video recording
+    ctx = browser.new_context(
+        record_video_dir=str(final_results_dir)
+    )
     request.node.context = ctx 
 
     yield ctx
+    
+    # --- Perbaikan: Simpan video setelah tes, sebelum context ditutup ---
+    status = "passed" if request.node.rep_call.passed else "failed"
+    new_final_dir = Path("results") / status / module_name / marks_str
+    new_final_dir.mkdir(parents=True, exist_ok=True)
+    
+    for page in ctx.pages:
+        video = page.video
+        if video:
+            filename_video = f"{request.node.name}.webm"
+            path_final = new_final_dir / filename_video
+            
+            try:
+                # video.path() hanya valid setelah context ditutup.
+                # Kita akan memindahkan file setelahnya di pytest_runtest_teardown.
+                # Untuk kode ini, kita akan mengabaikan video.save_as() di sini
+                # dan membiarkan pytest-playwright menangani penutupan
+                pass
+            except Exception as e:
+                print(f"[Video save error in fixture] {e}")
+
     ctx.close()
 
 @pytest.fixture(scope='function')
@@ -51,8 +75,12 @@ def page(context, request):
     except Exception:
         pass
 
-@pytest.hookimpl
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_makereport(item, call):
+    # Simpan laporan panggilan tes untuk digunakan di fixture context
+    item.rep_call = call
+    
+    # Hook ini sekarang hanya akan menangani screenshot
     if call.when == 'call':
         status = "passed" if call.excinfo is None else "failed"
         module_name = getattr(item, '_module_name', 'nomodule')
@@ -62,7 +90,6 @@ def pytest_runtest_makereport(item, call):
         final_results_dir = base_results_dir / status / module_name / marks_str
         final_results_dir.mkdir(parents=True, exist_ok=True)
 
-        # === Screenshot ===
         page = getattr(item, 'page', None)
         if page:
             try:
@@ -73,18 +100,26 @@ def pytest_runtest_makereport(item, call):
             except Exception as e:
                 print(f"[Screenshot error] {e}")
 
-        # === Video ===
-        ctx = getattr(item, 'context', None)
-        if ctx:
-            try:
-                for p in ctx.pages:
-                    video = p.video
-                    if video:
-                        filename_video = f"{item.name}.webm"
-                        path_final = final_results_dir / filename_video
-                        
-                        # Menggunakan video.save_as() untuk memastikan file selesai ditulis sebelum dipindahkan
-                        video.save_as(path_final)
-                        print(f"[Video saved] {path_final}")
-            except Exception as e:
-                print(f"[Video save error] {e}")
+@pytest.hookimpl(trylast=True)
+def pytest_runtest_teardown(item, nextitem):
+    # Mengambil video dari folder sementara dan memindahkannya
+    ctx = getattr(item, 'context', None)
+    if ctx and not ctx.is_closed():
+        ctx.close() # Pastikan context ditutup, yang akan memfinalisasi video
+    
+    if item.rep_call.passed:
+        status = "passed"
+    else:
+        status = "failed"
+    
+    module_name = getattr(item, '_module_name', 'nomodule')
+    marks_str = getattr(item, '_marks_str', 'nomark')
+    
+    temp_video_dir = Path("results") / "temp"
+    final_video_dir = Path("results") / status / module_name / marks_str
+    
+    for video_file in temp_video_dir.glob("*.webm"):
+        if video_file.stat().st_size > 0:
+            final_video_file = final_video_dir / video_file.name
+            shutil.move(str(video_file), str(final_video_file))
+            print(f"[Video moved] {final_video_file}")
