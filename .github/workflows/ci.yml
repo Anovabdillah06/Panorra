@@ -20,9 +20,6 @@ jobs:
           pip install pytest-rerunfailures playwright python-dotenv
           playwright install --with-deps
 
-      - name: Install Playwright browsers
-        run: python -m playwright install --with-deps
-
       - name: Run tests with screenshot & video
         env:
           CI: "true"
@@ -35,7 +32,7 @@ jobs:
         if: always()
         with:
           name: test-screenshots
-          path: screenshots/
+          path: results/**/*.png # Jalur yang diperbaiki
           retention-days: 30
 
       # Upload videos as artifact
@@ -44,5 +41,5 @@ jobs:
         if: always()
         with:
           name: test-videos
-          path: videos/
+          path: results/**/*.webm # Jalur yang diperbaiki
           retention-days: 30
