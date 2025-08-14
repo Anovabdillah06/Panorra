@@ -5,95 +5,121 @@ import pytest
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
-# Load env file jika ada
+# -------------------------------
+# Load .env
+# -------------------------------
+# Memuat semua variabel dari file .env
 load_dotenv()
 
-BASE_URL = os.getenv('BASE_URL', 'https://dev.panorra.com/')
+# Membaca variabel dari environment.
+# Menggunakan nama yang lebih spesifik (TEST_USERNAME, TEST_PASSWORD) adalah praktik terbaik
+# untuk menghindari konflik dengan variabel sistem.
+BASE_URL = os.getenv("BASE_URL", "https://dev.panorra.com/")
+USERNAME = os.getenv("TEST_USERNAME")
+PASSWORD = os.getenv("TEST_PASSWORD")
 HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
-@pytest.fixture(scope="session", autouse=True)
-def prepare_results_dir():
-    """Siapkan folder results/screenshots dan results/videos sebelum tes dimulai"""
-    for folder in ["results/screenshots", "results/videos"]:
-        Path(folder).mkdir(parents=True, exist_ok=True)
+# Menambahkan print untuk memastikan variabel dimuat dengan benar saat tes berjalan
+print(f"--- TEST ENV LOADED ---")
+print(f"URL: {BASE_URL}")
+print(f"USER: {USERNAME}")
+print(f"HEADLESS: {HEADLESS}")
+print(f"-----------------------")
 
-@pytest.fixture(scope='session')
+
+# -------------------------------
+# Direktori Hasil Tes
+# -------------------------------
+RESULTS_DIR = Path("results")
+VIDEOS_DIR = RESULTS_DIR / "videos"
+SCREENSHOTS_DIR = RESULTS_DIR / "screenshots"
+TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos"
+
+# Membuat direktori jika belum ada
+for folder in [VIDEOS_DIR, SCREENSHOTS_DIR, TEMP_VIDEO_DIR]:
+    folder.mkdir(parents=True, exist_ok=True)
+
+# -------------------------------
+# Fixtures - Penyedia Data & Setup
+# -------------------------------
+@pytest.fixture(scope="session")
+def base_url():
+    return BASE_URL
+
+@pytest.fixture(scope="session")
+def username():
+    return USERNAME
+
+@pytest.fixture(scope="session")
+def password():
+    return PASSWORD
+
+@pytest.fixture(scope="session")
 def playwright_instance():
     with sync_playwright() as p:
         yield p
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def browser(playwright_instance):
-    browser = playwright_instance.chromium.launch(
-        headless=HEADLESS,
-        slow_mo=0 if HEADLESS else 50
-    )
+    browser = playwright_instance.chromium.launch(headless=HEADLESS)
     yield browser
     browser.close()
 
+@pytest.fixture(scope="function")
+def context(browser, request):
+    ctx = browser.new_context(
+        record_video_dir=str(TEMP_VIDEO_DIR),
+        viewport={'width': 1280, 'height': 720} # Menambahkan viewport standar
+    )
+    request.node.context = ctx
+    yield ctx
+    ctx.close()
+
+@pytest.fixture(scope="function")
+def page(context, request):
+    page = context.new_page()
+    request.node.page = page
+    yield page
+    try:
+        page.close()
+    except Exception:
+        pass
+
+# -------------------------------
+# Hooks - Aksi Otomatis Saat Tes Berjalan
+# -------------------------------
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """Simpan hasil status tes"""
     outcome = yield
     rep = outcome.get_result()
     if rep.when == "call":
-        item.rep_call = rep
+        page = getattr(item, "page", None)
+        if page and not page.is_closed():
+            status = "passed" if rep.passed else "failed"
+            ss_dir = SCREENSHOTS_DIR / status
+            ss_dir.mkdir(parents=True, exist_ok=True)
+            ss_file = ss_dir / f"{item.name}_{status}.png"
+            try:
+                page.screenshot(path=str(ss_file))
+                print(f"\n[Screenshot saved] {ss_file}")
+            except Exception as e:
+                print(f"\n[Screenshot failed] {e}")
 
-@pytest.fixture(scope='function')
-def context(browser, request):
-    test_name = request.node.name
-    marks = [m.name for m in request.node.iter_markers() if m.name in ["smoke", "regression", "unit"]]
-    mark = marks[0] if marks else "nomark"
-    request.node._test_name = test_name
-    request.node._mark = mark
-
-    video_temp = Path("videos_temp")
-    video_temp.mkdir(parents=True, exist_ok=True)
-    ctx = browser.new_context(record_video_dir=str(video_temp))
-    request.node.context = ctx
-    yield ctx
-
-    status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
-    video_dir = Path("results/videos") / test_name / status / mark
-    video_dir.mkdir(parents=True, exist_ok=True)
-
-    for page in ctx.pages:
-        video = page.video
-        if video:
-            fn = f"{test_name}_{status}.webm"
-            dest = video_dir / fn
-            video.save_as(dest)
-            print(f"[Video saved] {dest}")
-    ctx.close()
-
-@pytest.fixture(scope='function')
-def page(context, request):
-    p = context.new_page()
-    request.node.page = p
-    yield p
-    try:
-        p.close()
-    except:
-        pass
-
-@pytest.fixture(scope='function', autouse=True)
-def capture_screenshot(request):
-    """Otomatis ambil screenshot tiap tes selesai"""
-    yield
-    page = getattr(request.node, "page", None)
-    if page:
-        status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
-        test_name = getattr(request.node, "_test_name", "unknown")
-        mark = getattr(request.node, "_mark", "nomark")
-
-        ss_dir = Path("results/screenshots") / test_name / status / mark
-        ss_dir.mkdir(parents=True, exist_ok=True)
-        ss_file = ss_dir / f"{test_name}_{status}.png"
-        page.screenshot(path=str(ss_file))
-        print(f"[Screenshot saved] {ss_file}")
+        ctx = getattr(item, "context", None)
+        if ctx:
+            for p in ctx.pages:
+                if not p.is_closed() and p.video:
+                    try:
+                        path = Path(p.video.path())
+                        video_file = VIDEOS_DIR / f"{item.name}.webm"
+                        if video_file.exists():
+                            video_file.unlink()
+                        path.rename(video_file)
+                        print(f"[Video saved] {video_file}")
+                    except Exception as e:
+                        print(f"[Video save failed] {e}")
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session):
-    tmp = Path("videos_temp")
-    if tmp.exists():
-        shutil.rmtree(tmp)
+    if TEMP_VIDEO_DIR.exists():
+        shutil.rmtree(TEMP_VIDEO_DIR)

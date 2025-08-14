@@ -1,15 +1,7 @@
 {
   "modules/auth/test_login.py::test_login_valid": true,
-  "modules/auth/test_login.py::test_record_login": true,
-  "modules/auth/test_login.py::test_login_ui_elements": true,
-  "modules/auth/test_login.py::test_login_button_enabled_when_filled": true,
-  "modules/auth/test_logout.py::test_header_menu_visibility_after_login": true,
-  "modules/auth/test_logout.py::test_logout_regression": true,
-  "modules/auth/test_logout.py::test_logout_smoke": true,
-  "modules/auth/test_login.py::test_logout_success": true,
-  "modules/auth/test_login.py::test_logout_redirects_to_home": true,
-  "modules/auth/test_login.py::test_logout_button_visibility": true,
-  "modules/auth/test_logout.py::test_without_logged_out": true,
-  "modules/auth/test_logout.py::test_unit_logout": true,
-  "modules/auth/test_logout.py::test_visible_logged_out": true
+  "modules/auth/test_login.py::test_login_invalid_username": true,
+  "modules/auth/test_login.py::test_login_invalid_password": true,
+  "modules/auth/test_login.py::test_login_button_disabled": true,
+  "modules/auth/test_logout.py::test_logout_unit": true
 }
