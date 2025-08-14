@@ -27,18 +27,17 @@ def browser(playwright_instance):
 
 @pytest.fixture(scope='function')
 def context(browser, request):
-    # Ambil mark & nama fungsi test
+    # Ambil nama file dan mark
+    module_name = Path(request.fspath).stem
     marks = [mark.name for mark in request.node.iter_markers()]
     marks_str = "_".join(marks) if marks else "nomark"
-
-    # Buat folder video
-    videos_dir = Path("videos") / marks_str
-    videos_dir.mkdir(parents=True, exist_ok=True)
-
-    ctx = browser.new_context(record_video_dir=str(videos_dir))
-    request.node._video_dir = videos_dir
+    
+    request.node._module_name = module_name
     request.node._marks_str = marks_str
-    request.node.context = ctx  # penting agar pytest_runtest_makereport bisa akses
+    
+    # Buat context dengan video recording, video akan disimpan sementara
+    ctx = browser.new_context(record_video_dir="videos_temp")
+    request.node.context = ctx 
 
     yield ctx
     ctx.close()
@@ -55,32 +54,27 @@ def page(context, request):
 
 @pytest.hookimpl
 def pytest_runtest_makereport(item, call):
-    """Screenshot & Video setiap test (passed/failed)"""
+    """Screenshot & Video untuk setiap test yang selesai"""
     if call.when == 'call':
         status = "passed" if call.excinfo is None else "failed"
+        module_name = getattr(item, '_module_name', 'nomodule')
         marks_str = getattr(item, '_marks_str', 'nomark')
+        
+        # --- PERBAIKAN DI SINI ---
+        # Membuat direktori hasil dengan struktur: results/status/modul_name/marks_str/
+        base_results_dir = Path("results")
+        final_results_dir = base_results_dir / status / module_name / marks_str
+        final_results_dir.mkdir(parents=True, exist_ok=True)
+        # --- AKHIR PERBAIKAN ---
 
         # === Screenshot ===
         page = getattr(item, 'page', None)
         if page:
-            screenshots_dir = Path('screenshots') / marks_str
-            screenshots_dir.mkdir(parents=True, exist_ok=True)
-
-            filename_ss = f"{marks_str}_{item.name}_{status}.png"
-            screenshot_path = screenshots_dir / filename_ss
-
             try:
-                if screenshot_path.exists():
-                    screenshot_path.unlink()
+                filename_ss = f"{item.name}.png"
+                screenshot_path = final_results_dir / filename_ss
                 page.screenshot(path=str(screenshot_path))
                 print(f"[Screenshot saved] {screenshot_path}")
-
-                # Copy ke root screenshots_root
-                root_ss_dir = Path("screenshots_root") / marks_str
-                root_ss_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(screenshot_path, root_ss_dir / filename_ss)
-                print(f"[Screenshot copied to root] {root_ss_dir / filename_ss}")
-
             except Exception as e:
                 print(f"[Screenshot error] {e}")
 
@@ -88,27 +82,14 @@ def pytest_runtest_makereport(item, call):
         ctx = getattr(item, 'context', None)
         if ctx:
             try:
-                for page in ctx.pages:
-                    video = page.video
+                for p in ctx.pages:
+                    video = p.video
                     if video:
-                        try:
-                            path = Path(video.path())
-                            filename_video = f"{marks_str}_{item.name}_{status}.webm"
-                            new_path = Path("videos") / marks_str / filename_video
+                        path_temp = Path(video.path())
+                        filename_video = f"{item.name}.webm"
+                        path_final = final_results_dir / filename_video
 
-                            if new_path.exists():
-                                new_path.unlink()
-                            path.rename(new_path)
-                            print(f"[Video saved] {new_path}")
-
-                            # Copy ke root videos_root
-                            root_video_dir = Path("videos_root") / marks_str
-                            root_video_dir.mkdir(parents=True, exist_ok=True)
-                            shutil.copy2(new_path, root_video_dir / filename_video)
-                            print(f"[Video copied to root] {root_video_dir / filename_video}")
-
-                        except Exception as ve:
-                            print(f"[Video save error] {ve}")
-
+                        shutil.move(path_temp, path_final)
+                        print(f"[Video saved] {path_final}")
             except Exception as e:
-                print(f"[Video error] {e}")
+                print(f"[Video save error] {e}")
