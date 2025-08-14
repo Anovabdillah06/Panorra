@@ -13,6 +13,7 @@ HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
 @pytest.fixture(scope="session", autouse=True)
 def prepare_results_dir():
+    """Siapkan folder results/screenshots dan results/videos sebelum tes dimulai"""
     for folder in ["results/screenshots", "results/videos"]:
         Path(folder).mkdir(parents=True, exist_ok=True)
 
@@ -32,6 +33,7 @@ def browser(playwright_instance):
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    """Simpan hasil status tes"""
     outcome = yield
     rep = outcome.get_result()
     if rep.when == "call":
@@ -40,7 +42,6 @@ def pytest_runtest_makereport(item, call):
 @pytest.fixture(scope='function')
 def context(browser, request):
     test_name = request.node.name
-    # Ambil hanya marker yang kita definisikan di pytest.ini
     marks = [m.name for m in request.node.iter_markers() if m.name in ["smoke", "regression", "unit"]]
     mark = marks[0] if marks else "nomark"
     request.node._test_name = test_name
@@ -77,6 +78,7 @@ def page(context, request):
 
 @pytest.fixture(scope='function', autouse=True)
 def capture_screenshot(request):
+    """Otomatis ambil screenshot tiap tes selesai"""
     yield
     page = getattr(request.node, "page", None)
     if page:
