@@ -50,10 +50,9 @@ def context(browser, request):
     request.node.context = ctx
     yield ctx
 
-    # Setelah test selesai, tentukan status
+    # Setelah test selesai → simpan video ke folder results
     status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
-
-    final_video_dir = Path("results") / status / module_name / marks_str
+    final_video_dir = Path("results") / "videos" / status / module_name / marks_str
     final_video_dir.mkdir(parents=True, exist_ok=True)
 
     for page in ctx.pages:
@@ -73,6 +72,18 @@ def context(browser, request):
 def page(context, request):
     page = context.new_page()
     request.node.page = page
+
+    # Buat helper function untuk screenshot agar semua tersimpan di results/screenshots
+    def take_screenshot(name: str):
+        status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
+        ss_dir = Path("results") / "screenshots" / status / request.node._module_name / request.node._marks_str
+        ss_dir.mkdir(parents=True, exist_ok=True)
+        file_path = ss_dir / f"{name}.png"
+        page.screenshot(path=str(file_path))
+        print(f"[Screenshot saved] {file_path}")
+
+    page.take_screenshot = take_screenshot  # tambahkan method custom
+
     yield page
     try:
         page.close()

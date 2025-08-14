@@ -18,7 +18,7 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pytest-rerunfailures playwright python-dotenv
-          playwright install --with-deps
+          playwright install
 
       - name: Run tests with screenshot & video
         env:
@@ -26,20 +26,20 @@ jobs:
         run: |
           pytest -m "unit or smoke or regression" --reruns 2 --reruns-delay 3
 
-      # Upload screenshots as artifact
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-screenshots
-          path: results/**/*.png # Jalur yang diperbaiki
+          path: results/**/*.png
           retention-days: 30
+          if-no-files-found: ignore
 
-      # Upload videos as artifact
       - name: Upload Videos
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-videos
-          path: results/**/*.webm # Jalur yang diperbaiki
+          path: results/**/*.webm
           retention-days: 30
+          if-no-files-found: ignore

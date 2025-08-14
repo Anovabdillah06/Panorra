@@ -1,0 +1,18 @@
+# Created by pytest automatically.
+*# Folder hasil test
+results/
+videos_temp/
+
+# File environment
+.env
+
+# File Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtualenv
+venv/
+.env/
+
