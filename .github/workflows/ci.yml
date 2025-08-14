@@ -33,7 +33,7 @@ jobs:
           name: test-screenshots
           path: results/**/*.png
           retention-days: 30
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       - name: Upload Videos
         uses: actions/upload-artifact@v4
@@ -42,4 +42,4 @@ jobs:
           name: test-videos
           path: results/**/*.webm
           retention-days: 30
-          if-no-files-found: ignore
+          if-no-files-found: warn

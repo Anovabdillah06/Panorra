@@ -11,6 +11,15 @@ load_dotenv()
 BASE_URL = os.getenv('BASE_URL', 'https://dev.panorra.com/')
 HEADLESS = os.getenv("HEADLESS", "false").lower() == "true"
 
+# Pastikan folder results ada sebelum test mulai
+def pytest_configure(config):
+    results_dir = Path("results")
+    results_dir.mkdir(parents=True, exist_ok=True)
+    # Buat .gitkeep supaya folder ikut ke repo
+    gitkeep = results_dir / ".gitkeep"
+    if not gitkeep.exists():
+        gitkeep.touch()
+
 @pytest.fixture(scope='session')
 def playwright_instance():
     with sync_playwright() as p:
@@ -50,9 +59,9 @@ def context(browser, request):
     request.node.context = ctx
     yield ctx
 
-    # Setelah test selesai → simpan video ke folder results
+    # Tentukan status setelah test selesai
     status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
-    final_video_dir = Path("results") / "videos" / status / module_name / marks_str
+    final_video_dir = Path("results") / status / module_name / marks_str
     final_video_dir.mkdir(parents=True, exist_ok=True)
 
     for page in ctx.pages:
@@ -72,23 +81,31 @@ def context(browser, request):
 def page(context, request):
     page = context.new_page()
     request.node.page = page
-
-    # Buat helper function untuk screenshot agar semua tersimpan di results/screenshots
-    def take_screenshot(name: str):
-        status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
-        ss_dir = Path("results") / "screenshots" / status / request.node._module_name / request.node._marks_str
-        ss_dir.mkdir(parents=True, exist_ok=True)
-        file_path = ss_dir / f"{name}.png"
-        page.screenshot(path=str(file_path))
-        print(f"[Screenshot saved] {file_path}")
-
-    page.take_screenshot = take_screenshot  # tambahkan method custom
-
     yield page
     try:
         page.close()
     except Exception:
         pass
+
+# Screenshot otomatis setelah setiap test
+@pytest.fixture(scope='function', autouse=True)
+def capture_screenshot_after_test(request):
+    yield
+    page = getattr(request.node, "page", None)
+    if page:
+        status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
+        module_name = getattr(request.node, "_module_name", "unknown")
+        marks_str = getattr(request.node, "_marks_str", "nomark")
+
+        screenshot_dir = Path("results") / status / module_name / marks_str
+        screenshot_dir.mkdir(parents=True, exist_ok=True)
+
+        screenshot_path = screenshot_dir / f"{request.node.name}.png"
+        try:
+            page.screenshot(path=str(screenshot_path))
+            print(f"[Screenshot saved] {screenshot_path}")
+        except Exception as e:
+            print(f"[Screenshot save error] {e}")
 
 # Bersihkan folder video sementara di akhir session
 @pytest.hookimpl(trylast=True)
