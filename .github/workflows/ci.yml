@@ -20,6 +20,11 @@ jobs:
           pip install pytest-rerunfailures playwright python-dotenv
           playwright install
 
+      - name: Prepare results folders
+        run: |
+          mkdir -p results/screenshots
+          mkdir -p results/videos
+
       - name: Run tests with screenshot & video
         env:
           CI: "true"
@@ -43,3 +48,4 @@ jobs:
           path: results/videos/**/*
           retention-days: 30
           if-no-files-found: warn
+

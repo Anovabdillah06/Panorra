@@ -34,10 +34,11 @@ def pytest_runtest_makereport(item, call):
 
 @pytest.fixture(scope='function')
 def context(browser, request):
-    module = Path(request.fspath).stem
-    marks = [m.name for m in request.node.iter_markers()]
+    test_name = request.node.name
+    # Ambil hanya marker yang kita definisikan di pytest.ini
+    marks = [m.name for m in request.node.iter_markers() if m.name in ["smoke", "regression", "unit"]]
     mark = marks[0] if marks else "nomark"
-    request.node._module = module
+    request.node._test_name = test_name
     request.node._mark = mark
 
     video_temp = Path("videos_temp")
@@ -47,13 +48,13 @@ def context(browser, request):
     yield ctx
 
     status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
-    video_dir = Path("results/videos") / module / status / mark
+    video_dir = Path("results/videos") / test_name / status / mark
     video_dir.mkdir(parents=True, exist_ok=True)
 
     for page in ctx.pages:
         video = page.video
         if video:
-            fn = f"{request.node.name}_{status}.webm"
+            fn = f"{test_name}_{status}.webm"
             dest = video_dir / fn
             video.save_as(dest)
             print(f"[Video saved] {dest}")
@@ -75,12 +76,12 @@ def capture_screenshot(request):
     page = getattr(request.node, "page", None)
     if page:
         status = "passed" if getattr(request.node, "rep_call", None) and request.node.rep_call.passed else "failed"
-        module = getattr(request.node, "_module", "unknown")
+        test_name = getattr(request.node, "_test_name", "unknown")
         mark = getattr(request.node, "_mark", "nomark")
 
-        ss_dir = Path("results/screenshots") / module / status / mark
+        ss_dir = Path("results/screenshots") / test_name / status / mark
         ss_dir.mkdir(parents=True, exist_ok=True)
-        ss_file = ss_dir / f"{request.node.name}_{status}.png"
+        ss_file = ss_dir / f"{test_name}_{status}.png"
         page.screenshot(path=str(ss_file))
         print(f"[Screenshot saved] {ss_file}")
 
@@ -89,4 +90,3 @@ def pytest_sessionfinish(session):
     tmp = Path("videos_temp")
     if tmp.exists():
         shutil.rmtree(tmp)
-
