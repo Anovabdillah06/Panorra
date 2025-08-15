@@ -42,46 +42,44 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
-# --- PERBAIKAN FINAL UNTUK PENYIMPANAN VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
     ctx = browser.new_context(
-        record_video_dir=VIDEOS_DIR,  # Langsung rekam ke sub-folder sementara di dalam videos
+        record_video_dir=VIDEOS_DIR,
         viewport={'width': 1280, 'height': 720}
     )
     request.node.context = ctx
     
-    yield ctx # Tes berjalan di sini
+    yield ctx
     
-    # --- Logika Teardown Baru ---
     rep = getattr(request.node, "rep_call", None)
     if not rep:
         ctx.close()
         return
 
-    # Pastikan ada halaman dan objek video sebelum melanjutkan
     if ctx.pages and ctx.pages[0].video:
         try:
-            # Tentukan path dan nama file final
             status = "passed" if rep.passed else "failed"
             test_func_name = request.node.name
             test_module_name = Path(request.node.fspath).stem
+            
+            # --- LOGIKA BARU: Ambil nama marker ---
+            marker = next(request.node.iter_markers(), None)
+            marker_name = marker.name if marker else "unmarked"
 
-            video_dir_final = VIDEOS_DIR / test_module_name / status
+            # --- PATH BARU dengan folder marker ---
+            video_dir_final = VIDEOS_DIR / marker_name / test_module_name / status
             video_dir_final.mkdir(parents=True, exist_ok=True)
             video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
             
-            # Gunakan metode save_as() yang andal SEBELUM menutup konteks
             ctx.pages[0].video.save_as(video_file_final)
             print(f"\n[Video saved] {video_file_final}")
 
-            # Hapus file video temporer asli yang dibuat Playwright
             Path(ctx.pages[0].video.path()).unlink()
 
         except Exception as e:
             print(f"\n[Video save failed] {e}")
     
-    # Terakhir, tutup konteks
     ctx.close()
 
 @pytest.fixture(scope="function")
@@ -109,7 +107,12 @@ def pytest_runtest_makereport(item, call):
             test_func_name = item.name
             test_module_name = Path(item.fspath).stem
             
-            ss_dir = SCREENSHOTS_DIR / test_module_name / status
+            # --- LOGIKA BARU: Ambil nama marker ---
+            marker = next(item.iter_markers(), None)
+            marker_name = marker.name if marker else "unmarked"
+            
+            # --- PATH BARU dengan folder marker ---
+            ss_dir = SCREENSHOTS_DIR / marker_name / test_module_name / status
             ss_dir.mkdir(parents=True, exist_ok=True)
             
             ss_file = ss_dir / f"{test_func_name}_{status}.png"
