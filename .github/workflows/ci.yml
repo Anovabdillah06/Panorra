@@ -35,7 +35,6 @@ jobs:
             --username "${{ env.TEST_USERNAME }}" \
             --password "${{ env.TEST_PASSWORD }}"
 
-      # --- PERUBAHAN DITERAPKAN DI SINI ---
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
         if: always()
@@ -46,13 +45,13 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      # --- DAN DI SINI ---
       - name: Upload Videos
         uses: actions/upload-artifact@v4
         if: always()
         with:
           # Nama artefak dibuat unik dengan nomor eksekusi
           name: videos-${{ github.run_number }}
-          path: results/videos/**/*
+          # --- PERUBAHAN DI SINI: Hanya mencari file .mp4 ---
+          path: results/videos/**/*.mp4
           retention-days: 30
           if-no-files-found: warn
