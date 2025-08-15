@@ -19,5 +19,7 @@ reports/
 # VSCode settings
 .vscode/
 
-# .gitignore
+# Ignore environment files
 .env
+.env.*
+
