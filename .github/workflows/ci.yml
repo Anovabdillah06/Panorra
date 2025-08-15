@@ -20,8 +20,18 @@ jobs:
           playwright install --with-deps
 
       - name: Run tests with screenshot & video
+        # --- PERBAIKAN DITERAPKAN DI SINI ---
         env:
-          CI: "true"
+          # Memaksa mode headless di lingkungan CI/CD untuk menghindari error XServer.
+          HEADLESS: "true"
+          
+          # Praktik terbaik: Gunakan secrets untuk menyimpan data sensitif.
+          # Anda perlu mengatur secrets ini di pengaturan repositori GitHub Anda.
+          # Settings > Secrets and variables > Actions > New repository secret
+          BASE_URL: "https://panorra.com/"
+          TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          
         run: |
           pytest -m "unit or smoke or regression" --reruns 2 --reruns-delay 3
 
