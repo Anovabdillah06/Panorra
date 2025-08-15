@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, Page
+import subprocess # -> Impor baru untuk menjalankan FFmpeg
 
 def pytest_addoption(parser):
     parser.addoption("--username", action="store", default=None, help="Username untuk login")
@@ -43,15 +44,13 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
-# --- PENYESUAIAN LOGIKA PEREKAMAN VIDEO ---
+# --- PERUBAHAN UTAMA UNTUK KONVERSI VIDEO KE MP4 ---
 @pytest.fixture(scope="function")
 def context(browser, request):
-    # Cek apakah tes memiliki marker 'smoke' atau 'regression'
     is_flow_test = request.node.get_closest_marker("smoke") or request.node.get_closest_marker("regression")
     
     context_args = {"viewport": {'width': 1280, 'height': 720}}
 
-    # Hanya aktifkan perekaman video jika ini adalah tes 'smoke' atau 'regression'
     if is_flow_test:
         context_args["record_video_dir"] = str(TEMP_VIDEO_DIR)
 
@@ -75,13 +74,26 @@ def context(browser, request):
 
             video_dir_final = VIDEOS_DIR / marker_name / test_module_name / status
             video_dir_final.mkdir(parents=True, exist_ok=True)
-            video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
             
-            video_path.rename(video_file_final)
-            print(f"\n[Video saved] {video_file_final}")
+            # Ubah ekstensi file tujuan menjadi .mp4
+            video_file_final = video_dir_final / f"{test_func_name}_{status}.mp4"
+            
+            # Buat perintah untuk konversi menggunakan FFmpeg
+            command = [
+                "ffmpeg",
+                "-i", str(video_path),      # Input file (.webm)
+                "-y",                       # Timpa file output jika sudah ada
+                "-loglevel", "error",       # Hanya tampilkan error
+                str(video_file_final)       # Output file (.mp4)
+            ]
+            
+            # Jalankan perintah konversi
+            subprocess.run(command, check=True)
+            
+            print(f"\n[Video converted to MP4] {video_file_final}")
 
         except Exception as e:
-            print(f"\n[Video save failed] {e}")
+            print(f"\n[Video conversion failed] {e}")
 
 @pytest.fixture(scope="function")
 def page(context, request):
@@ -114,8 +126,6 @@ def pytest_runtest_makereport(item, call):
     if rep.when == "call":
         item.rep_call = rep
 
-    # --- PENYESUAIAN LOGIKA SCREENSHOT OTOMATIS ---
-    # Screenshot otomatis hanya berjalan untuk tes 'smoke' atau 'regression'
     is_flow_test = item.get_closest_marker("smoke") or item.get_closest_marker("regression")
     if rep.when == "call" and is_flow_test:
         page = getattr(item, "page", None)
