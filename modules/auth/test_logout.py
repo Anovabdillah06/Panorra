@@ -76,7 +76,7 @@ def test_user_stays_logged_in(page: Page, base_url, username, password):
 
 # Tes unit untuk fungsionalitas tombol logout
 @pytest.mark.unit
-def test_logout_button_functionality(page: Page, base_url, username, password):
+def test_logout_button_functionality(page: Page, base_url, username, password, take_screenshot):
     # Tahap Login
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("networkidle")
@@ -92,16 +92,19 @@ def test_logout_button_functionality(page: Page, base_url, username, password):
     # Tunggu hingga login berhasil
     page.wait_for_load_state("networkidle")
     expect(page.get_by_role("button", name="header menu")).to_be_visible(timeout=20000)
-    
+    take_screenshot("login_berhasil")
     # Tahap Logout
     page.get_by_role("button", name="header menu").click()
+    take_screenshot("header_menu_terlihat")
     page.locator('a:has-text("Log Out")').click()
+    take_screenshot("logout_terlihat")
 
     # --- JEDA PAKSA 6 DETIK DITAMBAHKAN ---
     page.wait_for_timeout(5000)
 
     page.wait_for_load_state("networkidle")
-    
+    take_screenshot("logout_berhasil")
     # --- LOGIKA ASSERTION ---
     login_link_after_logout = page.get_by_role("link", name="Log In")
+    take_screenshot("login_setelah_logout_terlihat")
     expect(login_link_after_logout).to_be_visible(timeout=10000)

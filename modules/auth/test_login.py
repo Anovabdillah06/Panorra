@@ -87,7 +87,7 @@ def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
     
     # Tunggu heading muncul untuk memastikan halaman login sudah siap
     expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=10000)
-    take_screenshot("halaman_login_dimuat")
+    take_screenshot("login_dimuat")
 
     # Verifikasi semua elemen di halaman login
     expect(page.get_by_placeholder("Enter your email or username")).to_be_visible(timeout=10000)

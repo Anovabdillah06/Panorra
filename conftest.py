@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, Page
+import subprocess # -> Impor baru untuk menjalankan perintah eksternal (FFmpeg)
 
 def pytest_addoption(parser):
     parser.addoption("--username", action="store", default=None, help="Username untuk login")
@@ -43,6 +44,7 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
+# --- PERUBAHAN UTAMA UNTUK KONVERSI VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
     is_unit_test = request.node.get_closest_marker("unit") is not None
@@ -52,8 +54,10 @@ def context(browser, request):
     ctx = browser.new_context(**context_args)
     request.node.context = ctx
     yield ctx
+    
     video_path = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
     ctx.close()
+    
     rep = getattr(request.node, "rep_call", None)
     if rep and video_path and video_path.exists():
         try:
@@ -62,27 +66,39 @@ def context(browser, request):
             test_module_name = Path(request.node.fspath).stem
             marker = next(request.node.iter_markers(), None)
             marker_name = marker.name if marker else "unmarked"
+
             video_dir_final = VIDEOS_DIR / marker_name / test_module_name / status
             video_dir_final.mkdir(parents=True, exist_ok=True)
-            video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
-            video_path.rename(video_file_final)
-            print(f"\n[Video saved] {video_file_final}")
-        except Exception as e:
-            print(f"\n[Video save failed] {e}")
+            
+            # Ubah ekstensi file tujuan menjadi .mp4
+            video_file_final = video_dir_final / f"{test_func_name}_{status}.mp4"
+            
+            # Buat perintah untuk FFmpeg
+            command = [
+                "ffmpeg",
+                "-i", str(video_path),      # Input file (.webm)
+                "-y",                       # Timpa file output jika sudah ada
+                "-loglevel", "error",       # Hanya tampilkan error
+                str(video_file_final)       # Output file (.mp4)
+            ]
+            
+            # Jalankan perintah konversi
+            subprocess.run(command, check=True)
+            
+            print(f"\n[Video converted and saved] {video_file_final}")
 
+        except Exception as e:
+            print(f"\n[Video conversion failed] {e}")
+
+# ... (sisa kode tetap sama) ...
 @pytest.fixture(scope="function")
 def page(context, request):
     page = context.new_page()
     request.node.page = page
     yield page
 
-# --- FIXTURE BARU DITAMBAHKAN DI SINI ---
 @pytest.fixture
 def take_screenshot(request, page: Page):
-    """
-    Menyediakan fungsi untuk mengambil screenshot manual dengan nama file
-    dan path direktori yang dibuat secara otomatis.
-    """
     screenshot_counter = 0
     test_func_name = request.node.name
     test_module_name = Path(request.node.fspath).stem
@@ -91,14 +107,11 @@ def take_screenshot(request, page: Page):
     status = "passed"
     base_path = Path(f"results/screenshots/{marker_name}/{test_module_name}/{status}/")
     base_path.mkdir(parents=True, exist_ok=True)
-
     def _take_screenshot(step_description: str):
-        """Mengambil screenshot dengan nama file yang dinamis."""
         nonlocal screenshot_counter
         screenshot_counter += 1
         file_name = f"{test_func_name}_{screenshot_counter:02d}_{step_description}.png"
         page.screenshot(path=base_path / file_name)
-
     yield _take_screenshot
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
