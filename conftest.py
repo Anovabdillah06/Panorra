@@ -1,5 +1,4 @@
 import os
-import shutil
 from pathlib import Path
 import pytest
 from dotenv import load_dotenv
@@ -15,9 +14,8 @@ HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 RESULTS_DIR = Path("results")
 VIDEOS_DIR = RESULTS_DIR / "videos"
 SCREENSHOTS_DIR = RESULTS_DIR / "screenshots"
-TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos"
 
-for folder in [VIDEOS_DIR, SCREENSHOTS_DIR, TEMP_VIDEO_DIR]:
+for folder in [VIDEOS_DIR, SCREENSHOTS_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
 
 @pytest.fixture(scope="session")
@@ -43,29 +41,25 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
-# --- PERBAIKAN FINAL UNTUK PENYIMPANAN VIDEO ---
+# --- PENDEKATAN FINAL UNTUK VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
+    # Langsung rekam ke direktori video utama. Playwright akan buat file temporer di sini.
     ctx = browser.new_context(
-        record_video_dir=str(TEMP_VIDEO_DIR),
+        record_video_dir=VIDEOS_DIR,
         viewport={'width': 1280, 'height': 720}
     )
     request.node.context = ctx
     
     yield ctx # Tes berjalan di sini
     
-    # --- Logika Teardown yang Lebih Andal ---
-    # Dapatkan path video SEBELUM konteks ditutup
-    video_path = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
-    
-    # Tutup konteks untuk menyelesaikan penulisan video
+    # --- Logika Teardown untuk Memindahkan dan Menimpa Video ---
+    video_temp_path = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
     ctx.close()
     
-    # Dapatkan hasil tes
     rep = getattr(request.node, "rep_call", None)
     
-    # Lanjutkan hanya jika ada hasil tes dan file video temporer benar-benar ada
-    if rep and video_path and video_path.exists():
+    if rep and video_temp_path and video_temp_path.exists():
         try:
             status = "passed" if rep.passed else "failed"
             test_func_name = request.node.name
@@ -77,22 +71,22 @@ def context(browser, request):
             video_dir_final.mkdir(parents=True, exist_ok=True)
             video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
             
-            # Pindahkan file video yang sudah selesai ditulis ke lokasi final
-            video_path.rename(video_file_final)
+            # Jika file tujuan sudah ada, hapus (timpa).
+            if video_file_final.exists():
+                video_file_final.unlink()
+            
+            # Pindahkan file video temporer ke lokasi dan nama final.
+            video_temp_path.rename(video_file_final)
             print(f"\n[Video saved] {video_file_final}")
 
         except Exception as e:
-            print(f"\n[Video save failed] {e}")
+            print(f"\n[Video process failed] {e}")
 
 @pytest.fixture(scope="function")
 def page(context, request):
     page = context.new_page()
     request.node.page = page
     yield page
-    try:
-        page.close()
-    except Exception:
-        pass
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
@@ -121,8 +115,3 @@ def pytest_runtest_makereport(item, call):
                 print(f"\n[Screenshot saved] {ss_file}")
             except Exception as e:
                 print(f"\n[Screenshot failed] {e}")
-
-@pytest.hookimpl(trylast=True)
-def pytest_sessionfinish(session):
-    if TEMP_VIDEO_DIR.exists():
-        shutil.rmtree(TEMP_VIDEO_DIR)
