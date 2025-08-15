@@ -8,14 +8,12 @@ from playwright.sync_api import sync_playwright
 # --- TAMBAHAN: Fungsi untuk menerima argumen dari command-line ---
 def pytest_addoption(parser):
     """Menambahkan opsi command-line kustom ke Pytest."""
-    # Opsi --base-url sudah disediakan oleh plugin pytest-base-url, jadi tidak perlu ditambah.
     parser.addoption("--username", action="store", default=None, help="Username untuk login")
     parser.addoption("--password", action="store", default=None, help="Password untuk login")
 
 # -------------------------------
 # Load .env
 # -------------------------------
-# Memuat semua variabel dari file .env (untuk testing lokal)
 load_dotenv()
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
@@ -28,17 +26,15 @@ VIDEOS_DIR = RESULTS_DIR / "videos"
 SCREENSHOTS_DIR = RESULTS_DIR / "screenshots"
 TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos"
 
-# Membuat direktori jika belum ada
 for folder in [VIDEOS_DIR, SCREENSHOTS_DIR, TEMP_VIDEO_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
 
 # -------------------------------
 # Fixtures - Penyedia Data & Setup
 # -------------------------------
-# --- PENYESUAIAN: Fixture membaca dari command-line atau .env ---
 @pytest.fixture(scope="session")
 def base_url(request):
-    """Mendapatkan base_url dari command-line, .env, atau nilai default."""
+    """Mendapatkan base_url dari command-line atau .env."""
     return request.config.getoption("--base-url") or os.getenv("BASE_URL", "https://dev.panorra.com/")
 
 @pytest.fixture(scope="session")
@@ -52,7 +48,6 @@ def password(request):
     return request.config.getoption("--password") or os.getenv("TEST_PASSWORD")
 
 
-# --- (Sisa kode di bawah ini tidak perlu diubah) ---
 @pytest.fixture(scope="session")
 def playwright_instance():
     with sync_playwright() as p:
@@ -66,11 +61,6 @@ def browser(playwright_instance):
 
 @pytest.fixture(scope="function")
 def context(browser, request):
-    # --- FIX UNTUK VIDEO SAVING DITERAPKAN DI SINI ---
-    # Dapatkan path video SEBELUM konteks ditutup
-    video_path_obj = None
-    
-    # Buat konteks baru yang merekam video ke direktori temporer
     ctx = browser.new_context(
         record_video_dir=str(TEMP_VIDEO_DIR),
         viewport={'width': 1280, 'height': 720}
@@ -79,17 +69,31 @@ def context(browser, request):
     
     yield ctx # Tes berjalan di sini
     
-    # --- Teardown Logic ---
-    if ctx.pages and ctx.pages[0].video:
-        video_path_obj = Path(ctx.pages[0].video.path())
+    # --- LOGIKA PENYIMPANAN VIDEO BARU ---
+    # Dapatkan hasil tes (status) yang sudah disimpan di hook
+    rep = getattr(request.node, "rep_call", None)
+    if not rep:
+        ctx.close()
+        return
 
-    # Tutup konteks. Ini akan menyelesaikan penulisan video dan melepaskan file.
+    # Dapatkan path video SEBELUM konteks ditutup
+    video_path_obj = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
     ctx.close()
 
-    # SETELAH konteks ditutup, baru pindahkan file videonya
     if video_path_obj and video_path_obj.exists():
         try:
-            video_file_final = VIDEOS_DIR / f"{request.node.name}.webm"
+            status = "passed" if rep.passed else "failed"
+            test_func_name = request.node.name
+            # Dapatkan nama file tes (misal: "test_login")
+            test_module_name = Path(request.node.fspath).stem
+
+            # Buat struktur direktori baru
+            video_dir_final = VIDEOS_DIR / test_module_name / status
+            video_dir_final.mkdir(parents=True, exist_ok=True)
+            
+            # Buat nama file baru dengan status
+            video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
+            
             if video_file_final.exists():
                 video_file_final.unlink()
             video_path_obj.rename(video_file_final)
@@ -114,13 +118,27 @@ def page(context, request):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
+    
+    # Simpan hasil tes (rep) ke dalam item agar bisa diakses oleh fixture
+    if rep.when == "call":
+        item.rep_call = rep
+
     if rep.when == "call":
         page = getattr(item, "page", None)
         if page and not page.is_closed():
+            # --- LOGIKA PENYIMPANAN SCREENSHOT BARU ---
             status = "passed" if rep.passed else "failed"
-            ss_dir = SCREENSHOTS_DIR / status
+            test_func_name = item.name
+            # Dapatkan nama file tes (misal: "test_login")
+            test_module_name = Path(item.fspath).stem
+            
+            # Buat struktur direktori baru
+            ss_dir = SCREENSHOTS_DIR / test_module_name / status
             ss_dir.mkdir(parents=True, exist_ok=True)
-            ss_file = ss_dir / f"{item.name}_{status}.png"
+            
+            # Buat nama file baru
+            ss_file = ss_dir / f"{test_func_name}_{status}.png"
+            
             try:
                 page.screenshot(path=str(ss_file))
                 print(f"\n[Screenshot saved] {ss_file}")
