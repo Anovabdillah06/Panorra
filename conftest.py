@@ -5,48 +5,31 @@ import pytest
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
-# --- Fungsi untuk menerima argumen dari command-line ---
 def pytest_addoption(parser):
-    """Menambahkan opsi command-line kustom ke Pytest."""
     parser.addoption("--username", action="store", default=None, help="Username untuk login")
     parser.addoption("--password", action="store", default=None, help="Password untuk login")
 
-# -------------------------------
-# Load .env
-# -------------------------------
 load_dotenv()
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
-
-# -------------------------------
-# Direktori Hasil Tes
-# -------------------------------
 RESULTS_DIR = Path("results")
 VIDEOS_DIR = RESULTS_DIR / "videos"
 SCREENSHOTS_DIR = RESULTS_DIR / "screenshots"
-TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos"
 
-for folder in [VIDEOS_DIR, SCREENSHOTS_DIR, TEMP_VIDEO_DIR]:
+for folder in [VIDEOS_DIR, SCREENSHOTS_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
 
-# -------------------------------
-# Fixtures - Penyedia Data & Setup
-# -------------------------------
 @pytest.fixture(scope="session")
 def base_url(request):
-    """Mendapatkan base_url dari command-line atau .env."""
     return request.config.getoption("--base-url") or os.getenv("BASE_URL", "https://dev.panorra.com/")
 
 @pytest.fixture(scope="session")
 def username(request):
-    """Mendapatkan username dari command-line atau .env."""
     return request.config.getoption("--username") or os.getenv("TEST_USERNAME")
 
 @pytest.fixture(scope="session")
 def password(request):
-    """Mendapatkan password dari command-line atau .env."""
     return request.config.getoption("--password") or os.getenv("TEST_PASSWORD")
-
 
 @pytest.fixture(scope="session")
 def playwright_instance():
@@ -59,41 +42,47 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
+# --- PERBAIKAN FINAL UNTUK PENYIMPANAN VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
     ctx = browser.new_context(
-        record_video_dir=str(TEMP_VIDEO_DIR),
+        record_video_dir=VIDEOS_DIR,  # Langsung rekam ke sub-folder sementara di dalam videos
         viewport={'width': 1280, 'height': 720}
     )
     request.node.context = ctx
     
-    yield ctx
+    yield ctx # Tes berjalan di sini
     
+    # --- Logika Teardown Baru ---
     rep = getattr(request.node, "rep_call", None)
     if not rep:
         ctx.close()
         return
 
-    video_path_obj = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
-    ctx.close()
-
-    if video_path_obj and video_path_obj.exists():
+    # Pastikan ada halaman dan objek video sebelum melanjutkan
+    if ctx.pages and ctx.pages[0].video:
         try:
+            # Tentukan path dan nama file final
             status = "passed" if rep.passed else "failed"
             test_func_name = request.node.name
             test_module_name = Path(request.node.fspath).stem
 
             video_dir_final = VIDEOS_DIR / test_module_name / status
             video_dir_final.mkdir(parents=True, exist_ok=True)
-            
             video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
             
-            if video_file_final.exists():
-                video_file_final.unlink()
-            video_path_obj.rename(video_file_final)
+            # Gunakan metode save_as() yang andal SEBELUM menutup konteks
+            ctx.pages[0].video.save_as(video_file_final)
             print(f"\n[Video saved] {video_file_final}")
+
+            # Hapus file video temporer asli yang dibuat Playwright
+            Path(ctx.pages[0].video.path()).unlink()
+
         except Exception as e:
             print(f"\n[Video save failed] {e}")
+    
+    # Terakhir, tutup konteks
+    ctx.close()
 
 @pytest.fixture(scope="function")
 def page(context, request):
@@ -105,9 +94,6 @@ def page(context, request):
     except Exception:
         pass
 
-# -------------------------------
-# Hooks
-# -------------------------------
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
@@ -133,8 +119,3 @@ def pytest_runtest_makereport(item, call):
                 print(f"\n[Screenshot saved] {ss_file}")
             except Exception as e:
                 print(f"\n[Screenshot failed] {e}")
-
-@pytest.hookimpl(trylast=True)
-def pytest_sessionfinish(session):
-    if TEMP_VIDEO_DIR.exists():
-        shutil.rmtree(TEMP_VIDEO_DIR)
