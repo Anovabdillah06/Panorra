@@ -15,7 +15,7 @@ HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 RESULTS_DIR = Path("results")
 VIDEOS_DIR = RESULTS_DIR / "videos"
 SCREENSHOTS_DIR = RESULTS_DIR / "screenshots"
-TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos" # Direktori temporer kembali digunakan
+TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos"
 
 for folder in [VIDEOS_DIR, SCREENSHOTS_DIR, TEMP_VIDEO_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
@@ -43,23 +43,29 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
+# --- PERBAIKAN FINAL UNTUK PENYIMPANAN VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
-    # --- PERBAIKAN: Kembali merekam ke direktori temporer ---
     ctx = browser.new_context(
         record_video_dir=str(TEMP_VIDEO_DIR),
         viewport={'width': 1280, 'height': 720}
     )
     request.node.context = ctx
     
-    yield ctx
+    yield ctx # Tes berjalan di sini
     
+    # --- Logika Teardown yang Lebih Andal ---
+    # Dapatkan path video SEBELUM konteks ditutup
+    video_path = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
+    
+    # Tutup konteks untuk menyelesaikan penulisan video
+    ctx.close()
+    
+    # Dapatkan hasil tes
     rep = getattr(request.node, "rep_call", None)
-    if not rep:
-        ctx.close()
-        return
-
-    if ctx.pages and ctx.pages[0].video:
+    
+    # Lanjutkan hanya jika ada hasil tes dan file video temporer benar-benar ada
+    if rep and video_path and video_path.exists():
         try:
             status = "passed" if rep.passed else "failed"
             test_func_name = request.node.name
@@ -71,14 +77,12 @@ def context(browser, request):
             video_dir_final.mkdir(parents=True, exist_ok=True)
             video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
             
-            # Simpan video ke lokasi final
-            ctx.pages[0].video.save_as(video_file_final)
+            # Pindahkan file video yang sudah selesai ditulis ke lokasi final
+            video_path.rename(video_file_final)
             print(f"\n[Video saved] {video_file_final}")
 
         except Exception as e:
             print(f"\n[Video save failed] {e}")
-    
-    ctx.close()
 
 @pytest.fixture(scope="function")
 def page(context, request):
@@ -118,7 +122,6 @@ def pytest_runtest_makereport(item, call):
             except Exception as e:
                 print(f"\n[Screenshot failed] {e}")
 
-# Hook ini akan membersihkan folder video temporer setelah semua tes selesai
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session):
     if TEMP_VIDEO_DIR.exists():
