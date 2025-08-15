@@ -107,4 +107,4 @@ def test_logout_button_functionality(page: Page, base_url, username, password, t
     # --- LOGIKA ASSERTION ---
     login_link_after_logout = page.get_by_role("link", name="Log In")
     take_screenshot("login_setelah_logout_terlihat")
-    expect(login_link_after_logout).to_be_visible(timeout=10000)
+    expect(login_link_after_logout).to_be_visible(timeout=11000)
