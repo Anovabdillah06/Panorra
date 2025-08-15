@@ -1,6 +1,7 @@
 import re
 import pytest
 from playwright.sync_api import Page, expect
+from pathlib import Path
 
 # -------------------------------
 # Helper
@@ -73,21 +74,35 @@ def test_login_button_disabled_when_empty(page: Page, base_url):
     assert not login_button.is_enabled()
 
 @pytest.mark.unit
-def test_login_page_ui_elements(page: Page, base_url):
+def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
+    """
+    Tes unit UI dengan fitur screenshot otomatis dari conftest.py.
+    """
+    # --- Alur Tes ---
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)
+    take_screenshot("halaman_utama_dimuat")
 
     page.get_by_role("link", name="Log In").click()
+    
+    # Tunggu heading muncul untuk memastikan halaman login sudah siap
+    expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=10000)
+    take_screenshot("halaman_login_dimuat")
+
+    # Verifikasi semua elemen di halaman login
     expect(page.get_by_placeholder("Enter your email or username")).to_be_visible(timeout=10000)
     expect(page.get_by_placeholder("Enter your password")).to_be_visible(timeout=10000)
     expect(page.get_by_text("Password", exact=True)).to_be_visible(timeout=10000)
     expect(page.get_by_text("Email/Username", exact=True)).to_be_visible(timeout=10000)
-    expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=10000)
     expect(page.get_by_text("Forgot your password?")).to_be_visible(timeout=10000)
     expect(page.get_by_text("OR", exact=True)).to_be_visible(timeout=10000)
     expect(page.get_by_text("Need a Panorra account?")).to_be_visible(timeout=10000)
 
     iframe_locator = page.locator('iframe[title*="Google"]')
     expect(iframe_locator).to_be_visible(timeout=10000)
+    
     google_iframe = page.frame_locator('iframe[title*="Google"]')
     expect(google_iframe.get_by_role("button")).to_be_visible(timeout=10000)
+    
+    # Ambil screenshot terakhir sebagai bukti semua elemen terlihat
+    take_screenshot("semua_elemen_login_terlihat")
