@@ -1,41 +1,74 @@
+# Nama workflow yang akan tampil di tab Actions GitHub
 name: Playwright Tests
 
+# Pemicu: workflow ini akan berjalan otomatis saat ada 'push' atau 'pull_request'
 on: [push, pull_request]
 
+# Daftar pekerjaan yang akan dijalankan
 jobs:
+  # Nama pekerjaan, bisa apa saja, di sini kita sebut 'test'
   test:
+    # Menentukan bahwa pekerjaan ini akan berjalan di mesin virtual Ubuntu terbaru
     runs-on: ubuntu-latest
 
+    # Langkah-langkah yang akan dieksekusi secara berurutan
     steps:
-      - uses: actions/checkout@v3
+      # 1. Mengunduh kode dari repository ke mesin virtual
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
+      # 2. Menyiapkan lingkungan Python versi 3.11
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      # 3. Menginstal semua library yang dibutuhkan
+      - name: Install Dependencies
         run: |
           pip install -r requirements.txt
           playwright install --with-deps
 
+      # 4. Membersihkan hasil dari eksekusi sebelumnya (jika ada)
       - name: Clean Previous Results
         run: rm -rf results
 
-      - name: Run tests with screenshot & video
+      # 5. Menjalankan pengujian Playwright menggunakan Pytest
+      - name: Run Tests with Screenshot & Video
         env:
           HEADLESS: "true"
           BASE_URL: ${{ secrets.BASE_URL }}
           TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
-          
         run: |
           pytest -m "unit or smoke or regression" --reruns 2 --reruns-delay 3 \
             --base-url "${{ env.BASE_URL }}" \
             --username "${{ env.TEST_USERNAME }}" \
             --password "${{ env.TEST_PASSWORD }}"
 
-      # --- PERUBAHAN DITERAPKAN DI SINI ---
+      # 6. Mengonversi video dari format .webm ke .mp4
+      - name: Convert Videos to MP4
+        # 'if: always()' memastikan langkah ini tetap berjalan walaupun tes gagal
+        if: always()
+        run: |
+          echo "Mencari file video .webm untuk dikonversi..."
+          find results/videos -name "*.webm"
+          
+          for file in $(find results/videos -name "*.webm"); do
+            output_file="${file%.webm}.mp4"
+            echo "Mengonversi $file menjadi $output_file"
+            
+            # Menjalankan konversi menggunakan FFmpeg
+            ffmpeg -i "$file" -c:v libx264 -preset veryfast -crf 23 -y "$output_file" -loglevel error
+            
+            # Hapus file .webm asli setelah konversi berhasil
+            rm "$file"
+          done
+          
+          echo "Konversi selesai. Daftar file video .mp4:"
+          find results/videos -name "*.mp4"
+
+      # 7. Mengunggah folder screenshot sebagai artefak
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
         if: always()
@@ -46,13 +79,13 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
-      # --- DAN DI SINI ---
+      # 8. Mengunggah folder video (yang sekarang berisi file .mp4) sebagai artefak
       - name: Upload Videos
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          # Nama artefak dibuat unik dengan nomor eksekusi
           name: videos-${{ github.run_number }}
+          # Path ini akan otomatis menemukan file .mp4 yang baru dibuat
           path: results/videos/**/*
           retention-days: 30
           if-no-files-found: warn
