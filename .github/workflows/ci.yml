@@ -41,6 +41,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg
 
+      # Langkah konversi video sekarang akan berhasil
+      - name: Convert Videos to MP4
+        if: always()
+        run: |
+          echo "Mencari file video .webm untuk dikonversi..."
+          for file in $(find results/videos -name "*.webm"); do
+            output_file="${file%.webm}.mp4"
+            echo "Mengonversi $file menjadi $output_file"
+            ffmpeg -i "$file" -c:v libx264 -preset veryfast -crf 23 -y "$output_file" -loglevel error
+            rm "$file"
+          done
+          echo "Konversi selesai."
 
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
@@ -59,16 +71,3 @@ jobs:
           path: results/videos/**/*
           retention-days: 30
           if-no-files-found: warn
-
-      # Langkah konversi video sekarang akan berhasil
-      - name: Convert Videos to MP4
-        if: always()
-        run: |
-          echo "Mencari file video .webm untuk dikonversi..."
-          for file in $(find results/videos -name "*.webm"); do
-            output_file="${file%.webm}.mp4"
-            echo "Mengonversi $file menjadi $output_file"
-            ffmpeg -i "$file" -c:v libx264 -preset veryfast -crf 23 -y "$output_file" -loglevel error
-            rm "$file"
-          done
-          echo "Konversi selesai."
