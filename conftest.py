@@ -15,8 +15,9 @@ HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 RESULTS_DIR = Path("results")
 VIDEOS_DIR = RESULTS_DIR / "videos"
 SCREENSHOTS_DIR = RESULTS_DIR / "screenshots"
+TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos" # Direktori temporer kembali digunakan
 
-for folder in [VIDEOS_DIR, SCREENSHOTS_DIR]:
+for folder in [VIDEOS_DIR, SCREENSHOTS_DIR, TEMP_VIDEO_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
 
 @pytest.fixture(scope="session")
@@ -44,8 +45,9 @@ def browser(playwright_instance):
 
 @pytest.fixture(scope="function")
 def context(browser, request):
+    # --- PERBAIKAN: Kembali merekam ke direktori temporer ---
     ctx = browser.new_context(
-        record_video_dir=VIDEOS_DIR,
+        record_video_dir=str(TEMP_VIDEO_DIR),
         viewport={'width': 1280, 'height': 720}
     )
     request.node.context = ctx
@@ -62,20 +64,16 @@ def context(browser, request):
             status = "passed" if rep.passed else "failed"
             test_func_name = request.node.name
             test_module_name = Path(request.node.fspath).stem
-            
-            # --- LOGIKA BARU: Ambil nama marker ---
             marker = next(request.node.iter_markers(), None)
             marker_name = marker.name if marker else "unmarked"
 
-            # --- PATH BARU dengan folder marker ---
             video_dir_final = VIDEOS_DIR / marker_name / test_module_name / status
             video_dir_final.mkdir(parents=True, exist_ok=True)
             video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
             
+            # Simpan video ke lokasi final
             ctx.pages[0].video.save_as(video_file_final)
             print(f"\n[Video saved] {video_file_final}")
-
-            Path(ctx.pages[0].video.path()).unlink()
 
         except Exception as e:
             print(f"\n[Video save failed] {e}")
@@ -106,12 +104,9 @@ def pytest_runtest_makereport(item, call):
             status = "passed" if rep.passed else "failed"
             test_func_name = item.name
             test_module_name = Path(item.fspath).stem
-            
-            # --- LOGIKA BARU: Ambil nama marker ---
             marker = next(item.iter_markers(), None)
             marker_name = marker.name if marker else "unmarked"
             
-            # --- PATH BARU dengan folder marker ---
             ss_dir = SCREENSHOTS_DIR / marker_name / test_module_name / status
             ss_dir.mkdir(parents=True, exist_ok=True)
             
@@ -122,3 +117,9 @@ def pytest_runtest_makereport(item, call):
                 print(f"\n[Screenshot saved] {ss_file}")
             except Exception as e:
                 print(f"\n[Screenshot failed] {e}")
+
+# Hook ini akan membersihkan folder video temporer setelah semua tes selesai
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session):
+    if TEMP_VIDEO_DIR.exists():
+        shutil.rmtree(TEMP_VIDEO_DIR)
