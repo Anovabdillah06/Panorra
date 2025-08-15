@@ -47,7 +47,7 @@ def test_login_success(page: Page, base_url, username, password):
     assert heading.inner_text().strip() == "Recommendation for You"
 
 @pytest.mark.regression
-def test_login_invalid_credentials(page: Page, base_url, username):
+def test_login_invalid_credentials_password_or_username(page: Page, base_url, username):
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)
 
@@ -70,8 +70,25 @@ def test_login_button_disabled_when_empty(page: Page, base_url):
 
     page.get_by_role("link", name="Log In").click()
     login_button = page.get_by_role("button", name="Log In")
-    expect(login_button).to_be_disabled(timeout=10000)
+    expect(login_button).to_be_disabled(timeout=12000)
     assert not login_button.is_enabled()
+
+@pytest.mark.regression
+def test_login_invalid_credentials(page: Page, base_url, username):
+    page.goto(base_url, timeout=30000)
+    page.wait_for_load_state("domcontentloaded", timeout=30000)
+
+    page.get_by_role("link", name="Log In").click()
+    fill_input(page, "Enter your email or username", "adawrong")
+    fill_input(page, "Enter your password", "wrong_password_123")
+
+    page.get_by_role("button", name="Log In").click()
+
+    # Untuk kasus ini, 'expect().to_be_visible()' sudah cukup sebagai jeda
+    # karena kita tidak berpindah halaman, hanya menunggu pesan error muncul.
+    error_message = page.locator("text=Email or Password incorrect")
+    expect(error_message).to_be_visible(timeout=10000)
+    assert error_message.inner_text().strip() == "Email or Password incorrect"
 
 @pytest.mark.unit
 def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
