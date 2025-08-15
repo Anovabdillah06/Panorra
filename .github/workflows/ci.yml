@@ -20,20 +20,22 @@ jobs:
           playwright install --with-deps
 
       - name: Run tests with screenshot & video
-        # --- PERBAIKAN DITERAPKAN DI SINI ---
         env:
           # Memaksa mode headless di lingkungan CI/CD untuk menghindari error XServer.
           HEADLESS: "true"
           
-          # Praktik terbaik: Gunakan secrets untuk menyimpan data sensitif.
-          # Anda perlu mengatur secrets ini di pengaturan repositori GitHub Anda.
-          # Settings > Secrets and variables > Actions > New repository secret
-          BASE_URL: "https://panorra.com/"
+          # Secrets ini akan diambil dari pengaturan repositori GitHub Anda.
+          BASE_URL: ${{ secrets.BASE_URL }}
           TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
           
+        # --- PERBAIKAN DITERAPKAN DI SINI ---
+        # Meneruskan secrets sebagai argumen command-line ke pytest.
         run: |
-          pytest -m "unit or smoke or regression" --reruns 2 --reruns-delay 3
+          pytest -m "unit or smoke or regression" --reruns 2 --reruns-delay 3 \
+            --base-url "${{ env.BASE_URL }}" \
+            --username "${{ env.TEST_USERNAME }}" \
+            --password "${{ env.TEST_PASSWORD }}"
 
       - name: Upload Screenshots
         uses: actions/upload-artifact@v4
