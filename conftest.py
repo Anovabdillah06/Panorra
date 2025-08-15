@@ -43,20 +43,23 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
-# --- PENYEDERHANAAN LOGIKA PEREKAMAN VIDEO ---
+# --- PENYESUAIAN LOGIKA PEREKAMAN VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
-    # Logika 'if is_unit_test' dihapus untuk sementara.
-    # Kita akan selalu merekam video untuk semua tes sebagai langkah debug.
-    ctx = browser.new_context(
-        record_video_dir=str(TEMP_VIDEO_DIR),
-        viewport={'width': 1280, 'height': 720}
-    )
+    # Cek apakah tes memiliki marker 'smoke' atau 'regression'
+    is_flow_test = request.node.get_closest_marker("smoke") or request.node.get_closest_marker("regression")
+    
+    context_args = {"viewport": {'width': 1280, 'height': 720}}
+
+    # Hanya aktifkan perekaman video jika ini adalah tes 'smoke' atau 'regression'
+    if is_flow_test:
+        context_args["record_video_dir"] = str(TEMP_VIDEO_DIR)
+
+    ctx = browser.new_context(**context_args)
     request.node.context = ctx
     
     yield ctx
     
-    # Logika Teardown untuk memproses video
     video_path = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
     ctx.close()
     
@@ -86,6 +89,23 @@ def page(context, request):
     request.node.page = page
     yield page
 
+@pytest.fixture
+def take_screenshot(request, page: Page):
+    screenshot_counter = 0
+    test_func_name = request.node.name
+    test_module_name = Path(request.node.fspath).stem
+    marker = next(request.node.iter_markers(), None)
+    marker_name = marker.name if marker else "unmarked"
+    status = "passed"
+    base_path = Path(f"results/screenshots/{marker_name}/{test_module_name}/{status}/")
+    base_path.mkdir(parents=True, exist_ok=True)
+    def _take_screenshot(step_description: str):
+        nonlocal screenshot_counter
+        screenshot_counter += 1
+        file_name = f"{test_func_name}_{screenshot_counter:02d}_{step_description}.png"
+        page.screenshot(path=base_path / file_name)
+    yield _take_screenshot
+
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield
@@ -94,7 +114,10 @@ def pytest_runtest_makereport(item, call):
     if rep.when == "call":
         item.rep_call = rep
 
-    if rep.when == "call":
+    # --- PENYESUAIAN LOGIKA SCREENSHOT OTOMATIS ---
+    # Screenshot otomatis hanya berjalan untuk tes 'smoke' atau 'regression'
+    is_flow_test = item.get_closest_marker("smoke") or item.get_closest_marker("regression")
+    if rep.when == "call" and is_flow_test:
         page = getattr(item, "page", None)
         if page and not page.is_closed():
             status = "passed" if rep.passed else "failed"
