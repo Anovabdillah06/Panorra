@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, Page
-import subprocess
 
 def pytest_addoption(parser):
     parser.addoption("--username", action="store", default=None, help="Username untuk login")
@@ -44,9 +43,9 @@ def browser(playwright_instance):
     yield browser
     browser.close()
 
+# --- PENYESUAIAN LOGIKA PEREKAMAN VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
-    # --- LOGIKA UTAMA DI SINI ---
     # Cek apakah tes memiliki marker 'smoke' atau 'regression'
     is_flow_test = request.node.get_closest_marker("smoke") or request.node.get_closest_marker("regression")
     
@@ -61,12 +60,12 @@ def context(browser, request):
     
     yield ctx
     
-    # --- LOGIKA KONVERSI HANYA BERJALAN JIKA VIDEO DIREKAM ---
-    video_object = ctx.pages[0].video if ctx.pages and ctx.pages[0].video else None
+    video_path = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
+    ctx.close()
+    
     rep = getattr(request.node, "rep_call", None)
     
-    # Blok ini hanya akan dieksekusi jika 'video_object' ada (yaitu, jika tesnya adalah smoke/regression)
-    if rep and video_object:
+    if rep and video_path and video_path.exists():
         try:
             status = "passed" if rep.passed else "failed"
             test_func_name = request.node.name
@@ -76,23 +75,13 @@ def context(browser, request):
 
             video_dir_final = VIDEOS_DIR / marker_name / test_module_name / status
             video_dir_final.mkdir(parents=True, exist_ok=True)
-            video_file_final_mp4 = video_dir_final / f"{test_func_name}_{status}.mp4"
+            video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
             
-            safe_temp_webm = TEMP_VIDEO_DIR / f"{test_func_name}.webm"
-            video_object.save_as(safe_temp_webm)
-            
-            command = [
-                "ffmpeg", "-i", str(safe_temp_webm),
-                "-y", "-loglevel", "error", str(video_file_final_mp4)
-            ]
-            
-            subprocess.run(command, check=True)
-            print(f"\n[Video converted to MP4] {video_file_final_mp4}")
+            video_path.rename(video_file_final)
+            print(f"\n[Video saved] {video_file_final}")
 
         except Exception as e:
-            print(f"\n[Video conversion failed] {e}")
-    
-    ctx.close()
+            print(f"\n[Video save failed] {e}")
 
 @pytest.fixture(scope="function")
 def page(context, request):
@@ -121,8 +110,12 @@ def take_screenshot(request, page: Page):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     rep = outcome.get_result()
+    
     if rep.when == "call":
         item.rep_call = rep
+
+    # --- PENYESUAIAN LOGIKA SCREENSHOT OTOMATIS ---
+    # Screenshot otomatis hanya berjalan untuk tes 'smoke' atau 'regression'
     is_flow_test = item.get_closest_marker("smoke") or item.get_closest_marker("regression")
     if rep.when == "call" and is_flow_test:
         page = getattr(item, "page", None)
@@ -132,9 +125,12 @@ def pytest_runtest_makereport(item, call):
             test_module_name = Path(item.fspath).stem
             marker = next(item.iter_markers(), None)
             marker_name = marker.name if marker else "unmarked"
+            
             ss_dir = SCREENSHOTS_DIR / marker_name / test_module_name / status
             ss_dir.mkdir(parents=True, exist_ok=True)
+            
             ss_file = ss_dir / f"{test_func_name}_{status}.png"
+            
             try:
                 page.screenshot(path=str(ss_file))
                 print(f"\n[Screenshot saved] {ss_file}")
