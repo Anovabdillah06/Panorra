@@ -70,7 +70,7 @@ def test_login_button_disabled_when_empty(page: Page, base_url):
 
     page.get_by_role("link", name="Log In").click()
     login_button = page.get_by_role("button", name="Log In")
-    expect(login_button).to_be_disabled(timeout=12000)
+    expect(login_button).to_be_disabled(timeout=1000)
     assert not login_button.is_enabled()
 
 @pytest.mark.regression
