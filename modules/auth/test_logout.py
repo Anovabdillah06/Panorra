@@ -112,3 +112,5 @@ def test_session_persists_after_browser_close(browser: BrowserContext, page: Pag
     new_context.close()
     if os.path.exists(storage_state_path):
         os.remove(storage_state_path)
+
+    #selesai
