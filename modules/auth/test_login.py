@@ -123,3 +123,5 @@ def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
     
     # Ambil screenshot terakhir sebagai bukti semua elemen terlihat
     take_screenshot("semua_elemen_login_terlihat")
+
+    #selesai
