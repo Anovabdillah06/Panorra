@@ -6,7 +6,7 @@ from playwright.sync_api import Page, expect
 # Constants for Timeout
 # =====================================================================
 LONG_TIMEOUT = 60000      # Timeout for page navigation and critical actions
-MEDIUM_TIMEOUT = 15000    # Timeout for standard element verification
+MEDIUM_TIMEOUT = 13000    # Timeout for standard element verification
 
 # =====================================================================
 # Test using original locators
@@ -56,6 +56,7 @@ def test_app_store_links_with_original_locators(page: Page, base_url):
     expect(app_store_page.get_by_role("heading", name="Panorra 4+")).to_be_visible(timeout=MEDIUM_TIMEOUT)
     app_store_page.close()
     print("Second link verified successfully.")
+    page.wait_for_timeout(3000)
 
 @pytest.mark.regression
 def test_no_click_on_find_us_on_does_not_redirect(page: Page, base_url):
@@ -75,6 +76,7 @@ def test_no_click_on_find_us_on_does_not_redirect(page: Page, base_url):
     # 5. Verify that the page URL remains the same
     expect(page).to_have_url(base_url)
     print("Test passed. No redirect was triggered.")
+    page.wait_for_timeout(3000)
 
 @pytest.mark.regression
 def test_feature_load_failure_does_not_auto_redirect(page: Page, base_url):
@@ -94,11 +96,12 @@ def test_feature_load_failure_does_not_auto_redirect(page: Page, base_url):
     
     # 3. Wait a moment to allow for any automatic redirect
     page.wait_for_timeout(3000)
-    
+
     # 4. Main verification: Ensure the page URL does NOT change.
     #    This test will pass if there is NO redirect.
     expect(page).to_have_url(base_url)
     print("Test passed. The system correctly did not redirect on feature load failure.")
+    page.wait_for_timeout(3000)
 
 @pytest.mark.unit
 def test_homepage_elements_are_visible(page: Page, base_url, take_screenshot):
@@ -144,5 +147,5 @@ def test_homepage_elements_are_visible(page: Page, base_url, take_screenshot):
     second_download_link = page.get_by_role("list").filter(has_text=re.compile(r'^$')).get_by_role("link").nth(1)
     expect(second_download_link).to_be_visible(timeout=MEDIUM_TIMEOUT)
     take_screenshot("App_Store_link_visible")
-    
+
     print("All key elements have been successfully verified.")

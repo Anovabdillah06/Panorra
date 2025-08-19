@@ -27,6 +27,7 @@ def login_user(page: Page, base_url: str, username: str, password: str):
     page.get_by_role("button", name="Log In").click()
     
     dashboard_heading = page.get_by_role("heading", name="Recommendation for You")
+    page.wait_for_timeout(3000)
     expect(dashboard_heading).to_be_visible(timeout=LONG_TIMEOUT)
 
 # =====================================================================
@@ -73,6 +74,7 @@ def test_opening_menu_does_not_logout(page: Page, base_url, username, password):
     # Verify the menu appears and the user remains logged in
     expect(page.locator('a:has-text("Log Out")')).to_be_visible(timeout=SHORT_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_visible()
+    page.wait_for_timeout(3000)
 
 @pytest.mark.unit
 def test_logout_button_functionality(page: Page, base_url, username, password, take_screenshot):
@@ -112,3 +114,5 @@ def test_session_persists_after_browser_close(browser: BrowserContext, page: Pag
     new_context.close()
     if os.path.exists(storage_state_path):
         os.remove(storage_state_path)
+
+    page.wait_for_timeout(3000)
