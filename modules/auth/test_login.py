@@ -44,7 +44,9 @@ def test_login_success(page: Page, base_url, username, password):
     heading = page.get_by_role("heading", name="Recommendation for You")
     expect(heading).to_be_visible(timeout=10000)
     assert heading.inner_text().strip() == "Recommendation for You"
-
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_login_invalid_credentials_password_or_username(page: Page, base_url, username):
@@ -63,6 +65,8 @@ def test_login_invalid_credentials_password_or_username(page: Page, base_url, us
     expect(error_message).to_be_visible(timeout=10000)
     assert error_message.inner_text().strip() == "Email or Password incorrect"
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_login_button_disabled_when_empty(page: Page, base_url):
@@ -73,7 +77,9 @@ def test_login_button_disabled_when_empty(page: Page, base_url):
     login_button = page.get_by_role("button", name="Log In")
     expect(login_button).to_be_disabled(timeout=1000)
     assert not login_button.is_enabled()
- 
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_login_invalid_credentials(page: Page, base_url, username):
@@ -92,11 +98,15 @@ def test_login_invalid_credentials(page: Page, base_url, username):
     expect(error_message).to_be_visible(timeout=10000)
     assert error_message.inner_text().strip() == "Email or Password incorrect"
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 @pytest.mark.unit
 def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
     """
     UI unit test with the automatic screenshot feature from conftest.py.
     """
+    # --- THIS TEST IS UNCHANGED AS PER YOUR REQUEST ---
     # --- Test Flow ---
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)

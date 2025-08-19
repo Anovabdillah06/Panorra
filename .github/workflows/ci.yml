@@ -34,7 +34,7 @@ jobs:
             --base-url "${{ env.BASE_URL }}" \
             --username "${{ env.TEST_USERNAME }}" \
             --password "${{ env.TEST_PASSWORD }}" \
-            --slowmo 250
+            --slowmo 100
 
       # --- TAMBAHKAN LANGKAH INI UNTUK MENGINSTAL FFMPEG ---
       - name: Install FFmpeg

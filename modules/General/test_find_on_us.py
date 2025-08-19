@@ -5,7 +5,7 @@ from playwright.sync_api import Page, expect
 # =====================================================================
 # Constants for Timeout
 # =====================================================================
-LONG_TIMEOUT = 60000      # Timeout for page navigation and critical actions
+LONG_TIMEOUT = 60000      # Timeout for page navigation
 MEDIUM_TIMEOUT = 13000    # Timeout for standard element verification
 
 # =====================================================================
@@ -57,6 +57,9 @@ def test_app_store_links_with_original_locators(page: Page, base_url):
     app_store_page.close()
     print("Second link verified successfully.")
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 @pytest.mark.regression
 def test_no_click_on_find_us_on_does_not_redirect(page: Page, base_url):
     """
@@ -75,7 +78,9 @@ def test_no_click_on_find_us_on_does_not_redirect(page: Page, base_url):
     # 5. Verify that the page URL remains the same
     expect(page).to_have_url(base_url)
     print("Test passed. No redirect was triggered.")
-  
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_feature_load_failure_does_not_auto_redirect(page: Page, base_url):
@@ -101,12 +106,16 @@ def test_feature_load_failure_does_not_auto_redirect(page: Page, base_url):
     expect(page).to_have_url(base_url)
     print("Test passed. The system correctly did not redirect on feature load failure.")
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 @pytest.mark.unit
 def test_homepage_elements_are_visible(page: Page, base_url, take_screenshot):
     """
     Verifies that key elements on the homepage are visible, including those
     that require scrolling. This test uses specific locators as requested.
     """
+    # --- THIS TEST IS UNCHANGED AS PER YOUR REQUEST ---
     # 1. Navigate to the homepage
     page.goto(base_url, timeout=LONG_TIMEOUT)
 

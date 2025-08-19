@@ -20,9 +20,12 @@ def test_banner_link_loads_new_page_successfully(page: Page, base_url):
     
     # Get the new page object from the event
     new_page = new_page_info.value  
-    page.wait_for_timeout(3000)  
+    
     # (Optional) After successful verification, close the new page
     new_page.close()
+
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.smoke
 def test_verifies_staying_on_homepage_after_load(page: Page, base_url):
@@ -44,6 +47,9 @@ def test_verifies_staying_on_homepage_after_load(page: Page, base_url):
     # 4. (Additional Assertion) Explicitly check that the page URL
     #    is still the same as the base_url.
     expect(page).to_have_url(base_url)
+
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 
 @pytest.mark.regression
@@ -71,6 +77,9 @@ def test_banner_is_visible_when_ads_are_blocked(page: Page, base_url):
     # This assertion ensures that the banner does not disappear when ads are blocked.
     expect(banner_locator).to_be_visible(timeout=MEDIUM_TIMEOUT)
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 
 @pytest.mark.regression
 def test_malicious_redirect_is_prevented(page: Page, base_url):
@@ -86,12 +95,16 @@ def test_malicious_redirect_is_prevented(page: Page, base_url):
     # Verify that the page is still at the same URL and has not been redirected
     expect(page).to_have_url(base_url)
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 
 @pytest.mark.unit
 def test_homepage_key_elements_are_visible(page: Page, base_url, take_screenshot):
     """
     Verifies that all key interactive elements on the main page are visible.
     """
+    # --- THIS TEST IS UNCHANGED AS PER YOUR REQUEST ---
     page.goto(base_url, timeout=LONG_TIMEOUT)
     
     # Verify main elements are visible before interaction
