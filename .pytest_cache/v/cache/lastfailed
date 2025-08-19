@@ -26,5 +26,9 @@
   "modules/General/test_ads.py::test_malicious_redirect_is_prevented": true,
   "modules/General/test_ads.py::test_homepage_key_elements_are_visible": true,
   "modules/General/test_find_on_us.py::test_all_app_store_links_are_correct": true,
-  "modules/General/test_find_on_us.py::test_no_action_does_not_trigger_redirect": true
+  "modules/General/test_find_on_us.py::test_no_action_does_not_trigger_redirect": true,
+  "modules/General/test_find_on_us.py::test_app_store_links_with_original_locators": true,
+  "modules/General/test_find_on_us.py::test_no_click_on_find_us_on_does_not_redirect": true,
+  "modules/General/test_find_on_us.py::test_feature_load_failure_does_not_auto_redirect": true,
+  "modules/General/test_find_on_us.py::test_homepage_elements_are_visible": true
 }
