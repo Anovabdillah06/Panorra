@@ -44,25 +44,9 @@ def test_logout_success(page: Page, base_url, username, password):
     # Verify logout was successful
     expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=MEDIUM_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=SHORT_TIMEOUT)
-
-# @pytest.mark.regression
-# def test_shows_reconnect_page_when_offline(page: Page, base_url, username, password):
-#     """Verifies the 'reconnect' page appears when the connection is lost."""
-#     try:
-#         login_user(page, base_url, username, password)
-#         page.context.set_offline(True)
-        
-#         page.get_by_role("button", name="header menu").click()
-#         logout_link = page.locator('a:has-text("Log Out")')
-#         expect(logout_link).to_be_visible(timeout=SHORT_TIMEOUT)
-#         logout_link.click(no_wait_after=True)
-        
-#         # Verify the offline page appears
-#         expect(page.get_by_role("heading", name="Connect with Internet")).to_be_visible(timeout=MEDIUM_TIMEOUT)
-#         expect(page.get_by_role("button", name="Retry")).to_be_visible(timeout=MEDIUM_TIMEOUT)
-#     finally:
-#         # Ensures the connection is restored after the test is complete
-#         page.context.set_offline(False)
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_opening_menu_does_not_logout(page: Page, base_url, username, password):
@@ -73,11 +57,15 @@ def test_opening_menu_does_not_logout(page: Page, base_url, username, password):
     # Verify the menu appears and the user remains logged in
     expect(page.locator('a:has-text("Log Out")')).to_be_visible(timeout=SHORT_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_visible()
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 
 @pytest.mark.unit
 def test_logout_button_functionality(page: Page, base_url, username, password, take_screenshot):
     """Verifies the functionality of the logout button and takes screenshots."""
+    # --- THIS TEST IS UNCHANGED AS PER YOUR REQUEST ---
     login_user(page, base_url, username, password)
     take_screenshot("login_successful")
     
@@ -95,6 +83,7 @@ def test_logout_button_functionality(page: Page, base_url, username, password, t
 @pytest.mark.regression
 def test_session_persists_after_browser_close(browser: BrowserContext, page: Page, base_url, username, password):
     """Verifies that the login session persists after the browser is closed and reopened."""
+    # --- THIS TEST IS UNCHANGED BECAUSE IT CLOSES THE PAGE MANUALLY ---
     storage_state_path = "state.json"
     
     login_user(page, base_url, username, password)
@@ -113,4 +102,3 @@ def test_session_persists_after_browser_close(browser: BrowserContext, page: Pag
     new_context.close()
     if os.path.exists(storage_state_path):
         os.remove(storage_state_path)
-
