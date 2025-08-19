@@ -8,10 +8,10 @@ from pathlib import Path
 # -------------------------------
 def fill_input(page: Page, placeholder: str, value: str):
     field = page.get_by_placeholder(placeholder)
-    field.fill("")  # clear dulu
+    field.fill("")  # Clear first
     field.fill(value)
-    # Catatan: Baris di bawah ini umumnya tidak diperlukan.
-    # Playwright '.fill()' sudah sangat andal.
+    # Note: The line below is generally not necessary.
+    # Playwright's '.fill()' is very reliable.
     # page.evaluate(f'document.querySelector("[placeholder=\'{placeholder}\']").value = "{value}"')
     return field
 
@@ -32,16 +32,15 @@ def test_login_success(page: Page, base_url, username, password):
     expect(login_button).to_be_enabled(timeout=10000)
     login_button.click()
 
-    # --- JEDA PINTAR DITAMBAHKAN DI SINI ---
-    # Menunggu hingga halaman selesai memuat dan aktivitas jaringan tenang.
-    # Ini memberikan waktu bagi server untuk memproses login dan merender halaman berikutnya.
+    # --- SMART WAIT ADDED HERE ---
+    # Waiting for the page to finish loading and network activity to settle.
+    # This gives the server time to process the login and render the next page.
     try:
         page.wait_for_load_state("networkidle", timeout=15000)
     except Exception as e:
-        print(f"Halaman tidak mencapai networkidle, mungkin karena ada aktivitas latar belakang. Melanjutkan tes... Error: {e}")
+        print(f"Page did not reach networkidle, possibly due to background activity. Continuing test... Error: {e}")
 
-
-    # Setelah jeda, baru kita cari elemen di halaman baru.
+    # After the wait, we then look for elements on the new page.
     heading = page.get_by_role("heading", name="Recommendation for You")
     expect(heading).to_be_visible(timeout=10000)
     assert heading.inner_text().strip() == "Recommendation for You"
@@ -57,8 +56,8 @@ def test_login_invalid_credentials_password_or_username(page: Page, base_url, us
 
     page.get_by_role("button", name="Log In").click()
 
-    # Untuk kasus ini, 'expect().to_be_visible()' sudah cukup sebagai jeda
-    # karena kita tidak berpindah halaman, hanya menunggu pesan error muncul.
+    # In this case, 'expect().to_be_visible()' is a sufficient wait
+    # because we are not navigating, just waiting for an error message to appear.
     error_message = page.locator("text=Email or Password incorrect")
     expect(error_message).to_be_visible(timeout=10000)
     assert error_message.inner_text().strip() == "Email or Password incorrect"
@@ -84,8 +83,8 @@ def test_login_invalid_credentials(page: Page, base_url, username):
 
     page.get_by_role("button", name="Log In").click()
 
-    # Untuk kasus ini, 'expect().to_be_visible()' sudah cukup sebagai jeda
-    # karena kita tidak berpindah halaman, hanya menunggu pesan error muncul.
+    # In this case, 'expect().to_be_visible()' is a sufficient wait
+    # because we are not navigating, just waiting for an error message to appear.
     error_message = page.locator("text=Email or Password incorrect")
     expect(error_message).to_be_visible(timeout=10000)
     assert error_message.inner_text().strip() == "Email or Password incorrect"
@@ -93,20 +92,20 @@ def test_login_invalid_credentials(page: Page, base_url, username):
 @pytest.mark.unit
 def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
     """
-    Tes unit UI dengan fitur screenshot otomatis dari conftest.py.
+    UI unit test with the automatic screenshot feature from conftest.py.
     """
-    # --- Alur Tes ---
+    # --- Test Flow ---
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)
-    take_screenshot("halaman_utama_dimuat")
+    take_screenshot("homepage_loaded")
 
     page.get_by_role("link", name="Log In").click()
     
-    # Tunggu heading muncul untuk memastikan halaman login sudah siap
+    # Wait for the heading to appear to ensure the login page is ready
     expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=10000)
-    take_screenshot("login_dimuat")
+    take_screenshot("login_page_loaded")
 
-    # Verifikasi semua elemen di halaman login
+    # Verify all elements on the login page
     expect(page.get_by_placeholder("Enter your email or username")).to_be_visible(timeout=10000)
     expect(page.get_by_placeholder("Enter your password")).to_be_visible(timeout=10000)
     expect(page.get_by_text("Password", exact=True)).to_be_visible(timeout=10000)
@@ -121,7 +120,7 @@ def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
     google_iframe = page.frame_locator('iframe[title*="Google"]')
     expect(google_iframe.get_by_role("button")).to_be_visible(timeout=10000)
     
-    # Ambil screenshot terakhir sebagai bukti semua elemen terlihat
-    take_screenshot("semua_elemen_login_terlihat")
+    # Take the final screenshot as proof that all elements are visible
+    take_screenshot("all_login_elements_visible")
 
-    #selesai
+    # done

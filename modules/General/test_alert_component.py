@@ -1,82 +1,88 @@
 import pytest
+import os
 import re
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Page, expect, BrowserContext
 
 # =====================================================================
 # Constants for Timeout
+# Defined in one place for easy modification.
 # =====================================================================
-LONG_TIMEOUT = 60000      # Timeout for page navigation and critical actions
-MEDIUM_TIMEOUT = 15000    # Timeout for standard element verification
+LONG_TIMEOUT = 30000      # For long processes like initial page loads
+MEDIUM_TIMEOUT = 15000    # For standard element verification
+SHORT_TIMEOUT = 5000      # For quick verifications
 
 # =====================================================================
 # Helper function for login
 # =====================================================================
 def login_user(page: Page, base_url: str, username: str, password: str):
-    """Fungsi terpusat untuk menavigasi dan melakukan login."""
+    """Centralized function to navigate and perform login."""
     print("Navigating to login page...")
     page.goto(base_url, timeout=LONG_TIMEOUT)
-    page.get_by_role("link", name="Log In").click()
     
-    print(f"Logging in with username: {username}...")
-    page.get_by_role("textbox", name="Enter your email or username").fill(username)
-    page.get_by_role("textbox", name="Enter your password").fill(password)
+    login_link = page.get_by_role("link", name="Log In")
+    expect(login_link).to_be_visible(timeout=MEDIUM_TIMEOUT)
+    login_link.click()
+    
+    page.get_by_placeholder("Enter your email or username").fill(username)
+    page.get_by_placeholder("Enter your password").fill(password)
     page.get_by_role("button", name="Log In").click(timeout=LONG_TIMEOUT)
     
-    # Verifikasi login berhasil
-    expect(page.get_by_role("heading", name="Recommendation for You")).to_be_visible(timeout=LONG_TIMEOUT)
+    # Verify login was successful
+    dashboard_heading = page.get_by_role("heading", name="Recommendation for You")
+    expect(dashboard_heading).to_be_visible(timeout=LONG_TIMEOUT)
     print("Login successful.")
 
 # =====================================================================
-# Combined Smoke Test for Success and Error Alerts
+# Final Test Suite
 # =====================================================================
 
 @pytest.mark.smoke
 def test_success_and_error_alerts_flow(page: Page, base_url, username, password):
     """
-    Memverifikasi alur alert sukses (block post) dan alert error (invalid profile edit)
-    dalam satu smoke test.
+    Verifies the success alert flow (block post) and the error alert flow (invalid profile edit)
+    in a single smoke test.
     """
-    # 1. Login ke aplikasi
+    # 1. Login to the application
     login_user(page, base_url, username, password)
     
-    # --- BAGIAN 1: VERIFIKASI ALERT SUKSES ---
+    # --- PART 1: VERIFY SUCCESS ALERT ---
     print("\n--- Testing Success Alert: Blocking a Post ---")
     
-    # 2. Klik postingan pertama di halaman utama
+    # 2. Click the first post on the main page
     print("Opening the first post...")
     page.locator('.d-block.w-100').first.click()
     
-    # 3. Buka menu opsi dan blokir postingan
+    # 3. Open the options menu and block the post
     print("Blocking the post...")
     page.locator('.flex-align-center > app-detail-menu > .header-more > #dropdownBasic1').click()
     page.get_by_role('link', name='Block Post').click()
     page.get_by_role('button', name='Confirm').click()
     
-    # 4. Verifikasi alert sukses muncul
+    # 4. Verify the success alert appears
     print("Verifying success alert...")
     success_alert = page.get_by_text('Success Block Post')
     expect(success_alert).to_be_visible(timeout=MEDIUM_TIMEOUT)
     print("Success alert for blocking post verified.")
 
-    # --- BAGIAN 2: VERIFIKASI ALERT ERROR ---
+    # --- PART 2: VERIFY ERROR ALERT ---
     print("\n--- Testing Error Alert: Invalid Profile Edit ---")
 
-    # 5. Navigasi ke halaman Edit Profil
+    # 5. Navigate to the Edit Profile page
     print("Navigating to Edit Profile page...")
     page.get_by_role('button', name='header menu').click()
     page.get_by_text('Profile').click()
     page.get_by_role('button', name='Edit Profile').click()
     
-    # 6. Masukkan nama yang terlalu panjang (tidak valid)
+    # 6. Enter an overly long (invalid) name
     print("Entering an invalid full name...")
     invalid_name = "Arnov Abdillah Rahman Paasdjahjskdakjsdbalsbd njang Banget Nama Nya"
     full_name_input = page.get_by_role('textbox', name='Enter full name')
     full_name_input.fill(invalid_name)
     
-    # 7. Coba simpan profil
+    # 7. Try to save the profile
     page.get_by_role('button', name='Save Profile').click()
     
-    # 8. Verifikasi alert error muncul
+    # 8. Verify the error alert appears
     print("Verifying error alert...")
     error_alert = page.get_by_text('Not valid fullname, fullname')
     expect(error_alert).to_be_visible(timeout=MEDIUM_TIMEOUT)
@@ -85,43 +91,43 @@ def test_success_and_error_alerts_flow(page: Page, base_url, username, password)
 @pytest.mark.regression
 def test_cancel_block_post_action(page: Page, base_url, username, password):
     """
-    Memverifikasi bahwa pengguna dapat membatalkan aksi "Block Post"
-    dari dialog konfirmasi.
+    Verifies that the user can cancel the "Block Post" action
+    from the confirmation dialog.
     """
-    # 1. Login ke aplikasi
+    # 1. Login to the application
     login_user(page, base_url, username, password)
     
-    # 2. Klik postingan pertama untuk membukanya
+    # 2. Click the first post to open it
     print("Opening the first post...")
     page.locator('.d-block.w-100').first.click()
     
-    # 3. Buka menu opsi
+    # 3. Open the options menu
     print("Opening post options menu...")
     menu_button = page.get_by_role("button", name="button menu")
     menu_button.click()
     
-    # 4. Klik link "Block Post"
+    # 4. Click the "Block Post" link
     print("Clicking 'Block Post'...")
     page.get_by_role('link', name='Block Post').click()
     
-    # 5. Verifikasi bahwa dialog konfirmasi muncul (dengan mencari tombol "Cancel")
+    # 5. Verify the confirmation dialog appears (by finding the "Cancel" button)
     cancel_button = page.get_by_role('button', name='Cancel')
     expect(cancel_button).to_be_visible(timeout=MEDIUM_TIMEOUT)
     
-    # 6. Klik tombol "Cancel" untuk membatalkan aksi
+    # 6. Click the "Cancel" button to abort the action
     print("Canceling the action...")
     cancel_button.click()
     
-    # 7. Verifikasi bahwa dialog konfirmasi telah tertutup
-    #    dan pengguna kembali ke state sebelumnya (menu opsi masih terlihat)
+    # 7. Verify that the confirmation dialog has closed
+    #    and the user is back to the previous state (options menu is still visible)
     print("Verifying the action was cancelled...")
     expect(cancel_button).to_be_hidden(timeout=MEDIUM_TIMEOUT)
-    print("Block post action was successfully cancelled.")  
+    print("Block post action was successfully cancelled.")   
 
 @pytest.mark.regression
 def test_alert_does_not_appear_spontaneously(page: Page, base_url,username , password):
     """
-    Memverifikasi bahwa alert tidak muncul tanpa pemicu dari pengguna.
+    Verifies that an alert does not appear without a user trigger.
     """
     login_user(page, base_url, username, password)
     
@@ -132,60 +138,61 @@ def test_alert_does_not_appear_spontaneously(page: Page, base_url,username , pas
 @pytest.mark.regression
 def test_no_action_on_confirmation_dialog(page: Page, base_url, username, password):
     """
-    Memverifikasi bahwa sistem tetap menunggu dan tidak ada alert yang muncul
-    jika pengguna tidak melakukan apa pun pada dialog konfirmasi "Block Post".
+    Verifies that the system waits and no alert appears
+    if the user does nothing on the "Block Post" confirmation dialog.
     """
-    # 1. Login dan navigasi untuk memicu sebuah aksi
+    # 1. Login and navigate to trigger an action
     login_user(page, base_url, username, password)
-    page.locator('.d-block.w-100').first.click() # Klik postingan
+    page.locator('.d-block.w-100').first.click() # Click post
     
-    # 2. Buka menu dan klik "Block Post" untuk memunculkan dialog konfirmasi
+    # 2. Open the menu and click "Block Post" to show the confirmation dialog
     page.locator('.flex-align-center > app-detail-menu > .header-more > #dropdownBasic1').click()
     page.get_by_role('link', name='Block Post').click()
     
-    # 3. Pastikan dialog konfirmasi (conditional page) sudah muncul
+    # 3. Ensure the confirmation dialog (conditional page) has appeared
     print("Confirmation dialog is visible...")
     confirm_button = page.get_by_role('button', name='Confirm')
     expect(confirm_button).to_be_visible(timeout=MEDIUM_TIMEOUT)
     
-    # 4. Pengguna TIDAK MELAKUKAN APA PUN. Kita simulasikan dengan menunggu.
+    # 4. User DOES NOTHING. We simulate this by waiting.
     print("User does nothing for 3 seconds...")
     page.wait_for_timeout(3000)
     
-    # 5. Verifikasi bahwa kondisi halaman tidak berubah
-    #    - Dialog konfirmasi harus tetap terlihat.
-    #    - Alert sukses ("Success Block Post") TIDAK boleh muncul.
+    # 5. Verify that the page state has not changed
+    #    - The confirmation dialog should still be visible.
+    #    - The success alert ("Success Block Post") should NOT appear.
     print("Verifying that the state has not changed...")
     
-    # Assertion 1: Pastikan dialog masih ada
+    # Assertion 1: Ensure the dialog is still present
     expect(confirm_button).to_be_visible()
     
-    # Assertion 2: Pastikan alert sukses tidak muncul
+    # Assertion 2: Ensure the success alert did not appear
     success_alert = page.get_by_text('Success Block Post')
     expect(success_alert).to_be_hidden()
     
     print("Test passed. System correctly waited for user input.")
 
 @pytest.mark.unit
-def test_login_ui_and_alerts_flow(page: Page, base_url, username, password):
+def test_login_ui_and_alerts_flow(page: Page, base_url, username, password, take_screenshot):
     """
-    Smoke test lengkap:
+    Complete smoke test:
     1. Login.
-    2. Memeriksa komponen UI.
-    3. Memverifikasi alert sukses.
-    4. Memverifikasi alert error.
+    2. Check UI components.
+    3. Verify success alert.
+    4. Verify error alert.
     """
     # 1. LOGIN
     login_user(page, base_url, username, password)
     
-    # 2. MEMERIKSA KOMPONEN UI SETELAH LOGIN
+    # 2. CHECK UI COMPONENTS AFTER LOGIN
     print("\n--- Verifying Dashboard UI Components ---")
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_visible()
     expect(page.get_by_role("button", name="header menu")).to_be_visible()
     expect(page.get_by_role("link", name="banner")).to_be_visible()
     print("Dashboard UI components are visible.")
-    
-    # 3. VERIFIKASI ALERT SUKSES (BLOCK POST)
+    take_screenshot("login_success")
+
+    # 3. VERIFY SUCCESS ALERT (BLOCK POST)
     print("\n--- Testing Success Alert: Blocking a Post ---")
     page.locator('.d-block.w-100').first.click()
     print("Opening the first post...")
@@ -198,15 +205,16 @@ def test_login_ui_and_alerts_flow(page: Page, base_url, username, password):
     success_alert = page.get_by_text('Success Block Post')
     expect(success_alert).to_be_visible(timeout=MEDIUM_TIMEOUT)
     print("Success alert verified.")
+    take_screenshot("Session_success_alert")
 
-    # 4. VERIFIKASI ALERT ERROR (EDIT PROFIL)
+    # 4. VERIFY ERROR ALERT (EDIT PROFILE)
     print("\n--- Testing Error Alert: Invalid Profile Edit ---")
     page.get_by_role('button', name='header menu').click()
     page.get_by_text('Profile').click()
     page.get_by_role('button', name='Edit Profile').click()
     print("Navigated to Edit Profile page.")
     
-    invalid_name = "Nama Ini Jelas Terlalu Panjang Untuk Disimpan di Database dan Seharusnya Ditolak Oleh Sistem Validasi"
+    invalid_name = "This Name Is Clearly Too Long To Be Saved in the Database and Should Be Rejected By The Validation System"
     page.get_by_role('textbox', name='Enter full name').fill(invalid_name)
     page.get_by_role('button', name='Save Profile').click()
     print("Attempting to save with invalid name...")
@@ -214,6 +222,6 @@ def test_login_ui_and_alerts_flow(page: Page, base_url, username, password):
     error_alert = page.get_by_text('Not valid fullname, fullname')
     expect(error_alert).to_be_visible(timeout=MEDIUM_TIMEOUT)
     print("Error alert verified.")
+    take_screenshot("Session_error_alert")
     
     print("\nFull unit test completed successfully.")
-    

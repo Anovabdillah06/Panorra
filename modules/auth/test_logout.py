@@ -4,18 +4,18 @@ import re
 from playwright.sync_api import Page, expect, BrowserContext
 
 # =====================================================================
-# Konstanta untuk Timeout
-# Didefinisikan di satu tempat agar mudah diubah.
+# Constants for Timeout
+# Defined in one place for easy modification.
 # =====================================================================
-LONG_TIMEOUT = 30000    # Untuk proses yang lama seperti memuat halaman pertama kali
-MEDIUM_TIMEOUT = 15000  # Untuk verifikasi elemen standar
-SHORT_TIMEOUT = 5000    # Untuk verifikasi cepat
+LONG_TIMEOUT = 30000      # For long processes like initial page loads
+MEDIUM_TIMEOUT = 15000    # For standard element verification
+SHORT_TIMEOUT = 5000      # For quick verifications
 
 # =====================================================================
-# Helper function untuk login
+# Helper function for login
 # =====================================================================
 def login_user(page: Page, base_url: str, username: str, password: str):
-    """Fungsi terpusat untuk menavigasi dan melakukan login."""
+    """Centralized function to navigate and perform login."""
     page.goto(base_url, timeout=LONG_TIMEOUT)
     
     login_link = page.get_by_role("link", name="Log In")
@@ -30,24 +30,24 @@ def login_user(page: Page, base_url: str, username: str, password: str):
     expect(dashboard_heading).to_be_visible(timeout=LONG_TIMEOUT)
 
 # =====================================================================
-# Kumpulan Tes Final
+# Final Test Suite
 # =====================================================================
 
 @pytest.mark.smoke
 def test_logout_success(page: Page, base_url, username, password):
-    """Memverifikasi bahwa pengguna dapat logout dengan sukses."""
+    """Verifies that the user can log out successfully."""
     login_user(page, base_url, username, password)
     
     page.get_by_role("button", name="header menu").click()
     page.locator('a:has-text("Log Out")').click()
 
-    # Verifikasi logout berhasil
+    # Verify logout was successful
     expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=MEDIUM_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=SHORT_TIMEOUT)
 
 # @pytest.mark.regression
 # def test_shows_reconnect_page_when_offline(page: Page, base_url, username, password):
-#     """Memverifikasi halaman 'reconnect' muncul saat koneksi terputus."""
+#     """Verifies the 'reconnect' page appears when the connection is lost."""
 #     try:
 #         login_user(page, base_url, username, password)
 #         page.context.set_offline(True)
@@ -57,31 +57,31 @@ def test_logout_success(page: Page, base_url, username, password):
 #         expect(logout_link).to_be_visible(timeout=SHORT_TIMEOUT)
 #         logout_link.click(no_wait_after=True)
         
-#         # Verifikasi halaman offline muncul
+#         # Verify the offline page appears
 #         expect(page.get_by_role("heading", name="Connect with Internet")).to_be_visible(timeout=MEDIUM_TIMEOUT)
 #         expect(page.get_by_role("button", name="Retry")).to_be_visible(timeout=MEDIUM_TIMEOUT)
 #     finally:
-#         # Menjamin koneksi kembali normal setelah tes selesai
+#         # Ensures the connection is restored after the test is complete
 #         page.context.set_offline(False)
 
 @pytest.mark.regression
 def test_opening_menu_does_not_logout(page: Page, base_url, username, password):
-    """Memverifikasi bahwa hanya membuka menu tidak me-logout pengguna."""
+    """Verifies that just opening the menu does not log the user out."""
     login_user(page, base_url, username, password)
     page.get_by_role("button", name="header menu").click()
     
-    # Verifikasi menu muncul dan pengguna tetap login
+    # Verify the menu appears and the user remains logged in
     expect(page.locator('a:has-text("Log Out")')).to_be_visible(timeout=SHORT_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_visible()
 
 @pytest.mark.unit
 def test_logout_button_functionality(page: Page, base_url, username, password, take_screenshot):
-    """Memverifikasi fungsionalitas tombol logout dan mengambil screenshot."""
+    """Verifies the functionality of the logout button and takes screenshots."""
     login_user(page, base_url, username, password)
-    take_screenshot("login_berhasil")
+    take_screenshot("login_successful")
     
     page.get_by_role("button", name="header menu").click()
-    take_screenshot("header_menu_terlihat")
+    take_screenshot("header_menu_visible")
     
     logout_link = page.locator('a:has-text("Log Out")')
     expect(logout_link).to_be_visible(timeout=SHORT_TIMEOUT)
@@ -89,28 +89,26 @@ def test_logout_button_functionality(page: Page, base_url, username, password, t
     
     expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=MEDIUM_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=SHORT_TIMEOUT)
-    take_screenshot("logout_berhasil")
+    take_screenshot("logout_successful")
 
 @pytest.mark.regression
 def test_session_persists_after_browser_close(browser: BrowserContext, page: Page, base_url, username, password):
-    """Memverifikasi sesi login tetap ada setelah browser ditutup dan dibuka kembali."""
+    """Verifies that the login session persists after the browser is closed and reopened."""
     storage_state_path = "state.json"
     
     login_user(page, base_url, username, password)
     page.context.storage_state(path=storage_state_path)
     page.context.close()
     
-    # Buka konteks baru dengan state yang tersimpan
+    # Open a new context with the saved state
     new_context = browser.new_context(storage_state=storage_state_path)
     new_page = new_context.new_page()
     new_page.goto(base_url, timeout=LONG_TIMEOUT)
 
-    # Verifikasi masih dalam keadaan login
+    # Verify that the user is still logged in
     expect(new_page.get_by_role("heading", name="Recommendation for You")).to_be_visible(timeout=MEDIUM_TIMEOUT)
     expect(new_page.get_by_role("link", name="Log In")).to_be_hidden(timeout=SHORT_TIMEOUT)
     
     new_context.close()
     if os.path.exists(storage_state_path):
         os.remove(storage_state_path)
-
-  
