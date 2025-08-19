@@ -87,7 +87,9 @@ def test_success_and_error_alerts_flow(page: Page, base_url, username, password)
     error_alert = page.get_by_text('Not valid fullname, fullname')
     expect(error_alert).to_be_visible(timeout=MEDIUM_TIMEOUT)
     print("Error alert for invalid full name verified.")
- 
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_cancel_block_post_action(page: Page, base_url, username, password):
@@ -123,7 +125,10 @@ def test_cancel_block_post_action(page: Page, base_url, username, password):
     #    and the user is back to the previous state (options menu is still visible)
     print("Verifying the action was cancelled...")
     expect(cancel_button).to_be_hidden(timeout=MEDIUM_TIMEOUT)
-    print("Block post action was successfully cancelled.")   
+    print("Block post action was successfully cancelled.")
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 
 @pytest.mark.regression
@@ -136,6 +141,9 @@ def test_alert_does_not_appear_spontaneously(page: Page, base_url,username , pas
     generic_alert = page.locator('[role="alert"]')
     expect(generic_alert).to_be_hidden()
     print("Test passed. No spontaneous alert was found.")
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_no_action_on_confirmation_dialog(page: Page, base_url, username, password):
@@ -173,6 +181,9 @@ def test_no_action_on_confirmation_dialog(page: Page, base_url, username, passwo
     expect(success_alert).to_be_hidden()
     
     print("Test passed. System correctly waited for user input.")
+    
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 
 @pytest.mark.unit
@@ -184,6 +195,7 @@ def test_login_ui_and_alerts_flow(page: Page, base_url, username, password, take
     3. Verify success alert.
     4. Verify error alert.
     """
+    # --- THIS TEST IS UNCHANGED AS PER YOUR REQUEST ---
     # 1. LOGIN
     login_user(page, base_url, username, password)
     
