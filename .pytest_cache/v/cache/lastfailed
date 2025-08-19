@@ -6,5 +6,18 @@
   "modules/auth/test_logout.py::test_logout_unit": true,
   "modules/auth/test_logout.py::test_logout_fails_when_offline_and_succeeds_on_reconnect": true,
   "modules/auth/test_logout.py::test_shows_reconnect_page_when_offline": true,
-  "modules/auth/test_logout.py::test_user_stays_logged_in": true
+  "modules/auth/test_logout.py::test_user_stays_logged_in": true,
+  "modules/auth/test_login.py::test_login_success": true,
+  "modules/auth/test_login.py::test_login_invalid_credentials_password_or_username": true,
+  "modules/auth/test_login.py::test_login_button_disabled_when_empty": true,
+  "modules/auth/test_login.py::test_login_invalid_credentials": true,
+  "modules/auth/test_login.py::test_login_page_ui_elements": true,
+  "modules/auth/test_logout.py::test_logout_success": true,
+  "modules/auth/test_logout.py::test_opening_menu_does_not_logout": true,
+  "modules/auth/test_logout.py::test_logout_button_functionality": true,
+  "modules/auth/test_logout.py::test_session_persists_after_browser_close": true,
+  "modules/General/test_ads.py::test_banner_link_opens_new_tab_for_guest": true,
+  "modules/General/test_ads.py::test_banner_link_opens_and_stays_on_new_page": true,
+  "modules/General/test_ads.py::test_ad_click_redirects_successfully": true,
+  "modules/General/test_ads.py::test_viewing_ad_does_not_redirect": true
 }
