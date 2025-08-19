@@ -56,7 +56,6 @@ def test_app_store_links_with_original_locators(page: Page, base_url):
     expect(app_store_page.get_by_role("heading", name="Panorra 4+")).to_be_visible(timeout=MEDIUM_TIMEOUT)
     app_store_page.close()
     print("Second link verified successfully.")
-    page.wait_for_timeout(3000)
 
 @pytest.mark.regression
 def test_no_click_on_find_us_on_does_not_redirect(page: Page, base_url):
@@ -76,7 +75,7 @@ def test_no_click_on_find_us_on_does_not_redirect(page: Page, base_url):
     # 5. Verify that the page URL remains the same
     expect(page).to_have_url(base_url)
     print("Test passed. No redirect was triggered.")
-    page.wait_for_timeout(3000)
+  
 
 @pytest.mark.regression
 def test_feature_load_failure_does_not_auto_redirect(page: Page, base_url):
@@ -101,7 +100,6 @@ def test_feature_load_failure_does_not_auto_redirect(page: Page, base_url):
     #    This test will pass if there is NO redirect.
     expect(page).to_have_url(base_url)
     print("Test passed. The system correctly did not redirect on feature load failure.")
-    page.wait_for_timeout(3000)
 
 @pytest.mark.unit
 def test_homepage_elements_are_visible(page: Page, base_url, take_screenshot):

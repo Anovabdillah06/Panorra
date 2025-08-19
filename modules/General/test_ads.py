@@ -44,7 +44,7 @@ def test_verifies_staying_on_homepage_after_load(page: Page, base_url):
     # 4. (Additional Assertion) Explicitly check that the page URL
     #    is still the same as the base_url.
     expect(page).to_have_url(base_url)
-    page.wait_for_timeout(3000)
+
 
 @pytest.mark.regression
 def test_banner_is_visible_when_ads_are_blocked(page: Page, base_url):
@@ -70,7 +70,7 @@ def test_banner_is_visible_when_ads_are_blocked(page: Page, base_url):
     
     # This assertion ensures that the banner does not disappear when ads are blocked.
     expect(banner_locator).to_be_visible(timeout=MEDIUM_TIMEOUT)
-    page.wait_for_timeout(3000)
+
 
 @pytest.mark.regression
 def test_malicious_redirect_is_prevented(page: Page, base_url):
@@ -85,7 +85,7 @@ def test_malicious_redirect_is_prevented(page: Page, base_url):
     
     # Verify that the page is still at the same URL and has not been redirected
     expect(page).to_have_url(base_url)
-    page.wait_for_timeout(3000)
+
 
 @pytest.mark.unit
 def test_homepage_key_elements_are_visible(page: Page, base_url, take_screenshot):
