@@ -87,7 +87,7 @@ def test_success_and_error_alerts_flow(page: Page, base_url, username, password)
     error_alert = page.get_by_text('Not valid fullname, fullname')
     expect(error_alert).to_be_visible(timeout=MEDIUM_TIMEOUT)
     print("Error alert for invalid full name verified.")
-    page.wait_for_timeout(3000)
+ 
 
 @pytest.mark.regression
 def test_cancel_block_post_action(page: Page, base_url, username, password):
@@ -124,7 +124,7 @@ def test_cancel_block_post_action(page: Page, base_url, username, password):
     print("Verifying the action was cancelled...")
     expect(cancel_button).to_be_hidden(timeout=MEDIUM_TIMEOUT)
     print("Block post action was successfully cancelled.")   
-    page.wait_for_timeout(3000)
+
 
 @pytest.mark.regression
 def test_alert_does_not_appear_spontaneously(page: Page, base_url,username , password):
@@ -136,7 +136,6 @@ def test_alert_does_not_appear_spontaneously(page: Page, base_url,username , pas
     generic_alert = page.locator('[role="alert"]')
     expect(generic_alert).to_be_hidden()
     print("Test passed. No spontaneous alert was found.")
-    page.wait_for_timeout(3000)
 
 @pytest.mark.regression
 def test_no_action_on_confirmation_dialog(page: Page, base_url, username, password):
@@ -174,7 +173,7 @@ def test_no_action_on_confirmation_dialog(page: Page, base_url, username, passwo
     expect(success_alert).to_be_hidden()
     
     print("Test passed. System correctly waited for user input.")
-    page.wait_for_timeout(3000)
+
 
 @pytest.mark.unit
 def test_login_ui_and_alerts_flow(page: Page, base_url, username, password, take_screenshot):
