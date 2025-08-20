@@ -39,7 +39,9 @@ def playwright_instance():
 
 @pytest.fixture(scope="session")
 def browser(playwright_instance):
-    browser = playwright_instance.chromium.launch(headless=HEADLESS)
+    # --- PERUBAHAN DI SINI ---
+    # Menambahkan channel="chrome" untuk menggunakan Google Chrome yang ter-install
+    browser = playwright_instance.chromium.launch(headless=HEADLESS, channel="chrome")
     yield browser
     browser.close()
 
@@ -141,3 +143,5 @@ def pytest_runtest_makereport(item, call):
 def pytest_sessionfinish(session):
     if TEMP_VIDEO_DIR.exists():
         shutil.rmtree(TEMP_VIDEO_DIR)
+
+#done

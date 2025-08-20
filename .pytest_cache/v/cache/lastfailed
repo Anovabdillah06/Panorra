@@ -31,5 +31,6 @@
   "modules/General/test_alert_component.py::test_alert_does_not_appear_spontaneously": true,
   "modules/General/test_alert_component.py::test_no_action_on_confirmation_dialog": true,
   "modules/General/test_alert_component.py::test_login_ui_and_alerts_flow": true,
-  "modules/General/test_terms_of_service.py::test_terms_of_service_page_ui_elements": true
+  "modules/General/test_terms_of_service.py::test_terms_of_service_page_ui_elements": true,
+  "modules/General/test_terms_of_service.py::test_terms_of_service_page_ui_elements_with_scroll": true
 }
