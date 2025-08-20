@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, Page
 
 def pytest_addoption(parser):
-    parser.addoption("--username", action="store", default=None, help="Username untuk login")
-    parser.addoption("--password", action="store", default=None, help="Password untuk login")
+    parser.addoption("--username", action="store", default=None, help="Username for login")
+    parser.addoption("--password", action="store", default=None, help="Password for login")
 
 load_dotenv()
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
@@ -39,21 +39,19 @@ def playwright_instance():
 
 @pytest.fixture(scope="session")
 def browser(playwright_instance):
-    # --- PERUBAHAN DI SINI ---
-    # Menambahkan channel="chrome" untuk menggunakan Google Chrome yang ter-install
+    # Using the installed Google Chrome browser
     browser = playwright_instance.chromium.launch(headless=HEADLESS, channel="chrome")
     yield browser
     browser.close()
 
-# --- PENYESUAIAN LOGIKA PEREKAMAN VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
-    # Cek apakah tes memiliki marker 'smoke' atau 'regression'
+    # Check if the test has a 'smoke' or 'regression' marker
     is_flow_test = request.node.get_closest_marker("smoke") or request.node.get_closest_marker("regression")
     
     context_args = {"viewport": {'width': 1280, 'height': 720}}
 
-    # Hanya aktifkan perekaman video jika ini adalah tes 'smoke' atau 'regression'
+    # Only activate video recording if this is a 'smoke' or 'regression' test
     if is_flow_test:
         context_args["record_video_dir"] = str(TEMP_VIDEO_DIR)
 
@@ -67,17 +65,20 @@ def context(browser, request):
     
     rep = getattr(request.node, "rep_call", None)
     
+    # --- NEW LOGIC for video saving ---
+    # Use the final status we saved in the 'item'
+    final_status = getattr(request.node, "final_status_for_artifacts", "passed" if rep and rep.passed else "failed")
+    
     if rep and video_path and video_path.exists():
         try:
-            status = "passed" if rep.passed else "failed"
             test_func_name = request.node.name
             test_module_name = Path(request.node.fspath).stem
             marker = next(request.node.iter_markers(), None)
             marker_name = marker.name if marker else "unmarked"
 
-            video_dir_final = VIDEOS_DIR / marker_name / test_module_name / status
+            video_dir_final = VIDEOS_DIR / marker_name / test_module_name / final_status
             video_dir_final.mkdir(parents=True, exist_ok=True)
-            video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
+            video_file_final = video_dir_final / f"{test_func_name}_{final_status}.webm"
             
             video_path.rename(video_file_final)
             print(f"\n[Video saved] {video_file_final}")
@@ -116,22 +117,37 @@ def pytest_runtest_makereport(item, call):
     if rep.when == "call":
         item.rep_call = rep
 
-    # --- PENYESUAIAN LOGIKA SCREENSHOT OTOMATIS ---
-    # Screenshot otomatis hanya berjalan untuk tes 'smoke' atau 'regression'
+        # --- NEW LOGIC to change FAILED status to SKIPPED after reruns ---
+        reruns = item.config.getoption("reruns")
+        if reruns > 0 and hasattr(item, "rerun"): # Check if this is a rerun session
+            if rep.failed and item.rerun == reruns:
+                print(f"\nTest '{item.name}' failed after all {reruns} reruns. Marking as SKIPPED.")
+                rep.outcome = "skipped"
+                rep.was_skipped = f"Failed after {reruns + 1} attempts"
+                # Store the "failed" status to be used by artifacts
+                item.final_status_for_artifacts = "failed"
+            elif rep.passed:
+                item.final_status_for_artifacts = "passed"
+        else:
+            # Set default status if not using reruns
+            item.final_status_for_artifacts = "passed" if rep.passed else "failed"
+
+    # --- ADJUSTMENT FOR AUTOMATIC SCREENSHOT LOGIC ---
     is_flow_test = item.get_closest_marker("smoke") or item.get_closest_marker("regression")
-    if rep.when == "call" and is_flow_test:
+    if rep.when == "call" and rep.failed and is_flow_test:
         page = getattr(item, "page", None)
         if page and not page.is_closed():
-            status = "passed" if rep.passed else "failed"
+            # Use the final status we saved in the 'item'
+            final_status = getattr(item, "final_status_for_artifacts", "failed")
+            
             test_func_name = item.name
             test_module_name = Path(item.fspath).stem
             marker = next(item.iter_markers(), None)
             marker_name = marker.name if marker else "unmarked"
             
-            ss_dir = SCREENSHOTS_DIR / marker_name / test_module_name / status
+            ss_dir = SCREENSHOTS_DIR / marker_name / test_module_name / final_status
             ss_dir.mkdir(parents=True, exist_ok=True)
-            
-            ss_file = ss_dir / f"{test_func_name}_{status}.png"
+            ss_file = ss_dir / f"{test_func_name}_{final_status}.png"
             
             try:
                 page.screenshot(path=str(ss_file))
@@ -143,5 +159,3 @@ def pytest_runtest_makereport(item, call):
 def pytest_sessionfinish(session):
     if TEMP_VIDEO_DIR.exists():
         shutil.rmtree(TEMP_VIDEO_DIR)
-
-#done
