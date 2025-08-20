@@ -40,6 +40,9 @@ def test_lost_connection_page_appears(page: Page, base_url):
     finally:
         page.context.set_offline(False)
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 @pytest.mark.regression
 def test_auto_recovers_to_login_page_for_guest(page: Page, base_url):
     """
@@ -84,6 +87,9 @@ def test_auto_recovers_to_login_page_for_guest(page: Page, base_url):
         print("CLEANUP: Ensuring context is back online.")
         page.context.set_offline(False)
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 @pytest.mark.regression
 def test_browser_back_button_on_lost_connection_page_for_guest(page: Page, base_url):
     """
@@ -115,12 +121,16 @@ def test_browser_back_button_on_lost_connection_page_for_guest(page: Page, base_
     finally:
         page.context.set_offline(False)
 
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
+
 @pytest.mark.unit
 def test_lost_connection_page_ui_elements(page: Page, base_url, take_screenshot):
     """
     Verifies that all key UI elements on the 'Lost Connection' page are
     present and visible, and takes a screenshot of each.
     """
+    # --- THIS TEST IS UNCHANGED AS PER YOUR REQUEST ---
     try:
         # 1. Open the main page
         page.goto(base_url, timeout=LONG_TIMEOUT)
