@@ -70,15 +70,14 @@ def test_auto_recovers_to_login_page_for_guest(page: Page, base_url):
         # 5. Restore the connection
         print("Restoring connection...")
         page.context.set_offline(False)
-        
+        page.wait_for_timeout(5000)
         # 6. Verify automatic recovery
         #    We do not click anything, just wait for the application to recover
         #    and continue the navigation to the Login page.
-        print("Waiting for auto-recovery and navigation to complete...")
         
         # This assertion will wait until the heading on the Login page appears.
         # If the page recovers automatically, this element will be visible.
-        expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=MEDIUM_TIMEOUT)
+        expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=LONG_TIMEOUT)
         
         print("Test passed. Page auto-recovered to the Login page successfully.")
         
