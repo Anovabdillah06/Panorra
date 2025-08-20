@@ -49,6 +49,58 @@ def test_logout_success(page: Page, base_url, username, password):
     page.wait_for_timeout(5000)
 
 @pytest.mark.regression
+def test_auto_recovers_and_completes_logout(page: Page, base_url, username, password):
+    """
+    Verifies that the page automatically recovers to its previous state
+    after the connection is restored, allowing the user to complete the logout.
+    """
+    try:
+        # 1. Login and open the logout menu
+        login_user(page, base_url, username, password)
+        header_menu = page.get_by_role("button", name="header menu")
+        header_menu.click()
+        expect(page.locator('a:has-text("Log Out")')).to_be_visible()
+
+        # 2. Simulate a lost connection
+        print("Simulating connection lost...")
+        page.context.set_offline(True)
+
+        # 3. Verify the 'Lost Connection' page appears
+        #    (This assumes an action or background check triggers it)
+        print("Verifying the 'Lost Connection' page is displayed...")
+        expect(page.get_by_role("heading", name="Connect with Internet")).to_be_visible(timeout=MEDIUM_TIMEOUT)
+        
+        # 4. Restore the connection
+        print("Restoring connection...")
+        page.context.set_offline(False)
+
+        # 5. Wait for the page to auto-recover
+        #    We are not clicking anything, just giving the app time to react.
+        print("Waiting for the page to auto-recover...")
+        
+        # 6. Verify automatic recovery
+        #    Verify the page has returned to its previous state (dashboard with menu open)
+        #    and the "Log Out" button is visible again.
+        logout_link = page.locator('a:has-text("Log Out")')
+        
+        # This assertion will wait until the "Log Out" link becomes visible again.
+        # If the page recovers successfully, this element will appear.
+        expect(logout_link).to_be_visible(timeout=MEDIUM_TIMEOUT)
+
+        # 7. Now, perform the logout action successfully
+        logout_link.click()
+
+        # Verify logout was successful
+        expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=MEDIUM_TIMEOUT)
+        
+        print("\nTest passed. Page auto-recovered successfully and logout was completed.")
+
+    finally:
+        # Ensure the connection is always back online at the end of the test
+        print("CLEANUP: Ensuring context is back online.")
+        page.context.set_offline(False)
+
+@pytest.mark.regression
 def test_opening_menu_does_not_logout(page: Page, base_url, username, password):
     """Verifies that just opening the menu does not log the user out."""
     login_user(page, base_url, username, password)
@@ -65,7 +117,6 @@ def test_opening_menu_does_not_logout(page: Page, base_url, username, password):
 @pytest.mark.unit
 def test_logout_button_functionality(page: Page, base_url, username, password, take_screenshot):
     """Verifies the functionality of the logout button and takes screenshots."""
-    # --- THIS TEST IS UNCHANGED AS PER YOUR REQUEST ---
     login_user(page, base_url, username, password)
     take_screenshot("login_successful")
     
@@ -83,7 +134,6 @@ def test_logout_button_functionality(page: Page, base_url, username, password, t
 @pytest.mark.regression
 def test_session_persists_after_browser_close(browser: BrowserContext, page: Page, base_url, username, password):
     """Verifies that the login session persists after the browser is closed and reopened."""
-    # --- THIS TEST IS UNCHANGED BECAUSE IT CLOSES THE PAGE MANUALLY ---
     storage_state_path = "state.json"
     
     login_user(page, base_url, username, password)
