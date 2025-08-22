@@ -10,6 +10,15 @@ def launch_browser(headless=True):
     # Chromium dengan channel 'chrome' = Google Chrome
     browser = pw.chromium.launch(headless=headless, channel="chrome")
 
-    context = browser.new_context()
+    header_array=[
+        ("Access-Code", "NYQLFxYsnOy+/zwnNWmNTUN5")
+    ]
+
+    header_dic = dict(header_array)
+
+    context = browser.new_context(
+        extra_http_headers=header_dic
+        
+    )
     page = context.new_page()
     return pw, browser, context, page

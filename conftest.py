@@ -33,6 +33,10 @@ def password(request):
     return request.config.getoption("--password") or os.getenv("TEST_PASSWORD")
 
 @pytest.fixture(scope="session")
+def access_code(request):
+    return request.config.getoption("--access_code") or os.getenv("ACCESS_CODE")
+
+@pytest.fixture(scope="session")
 def playwright_instance():
     with sync_playwright() as p:
         yield p
@@ -56,6 +60,13 @@ def context(browser, request):
     # Hanya aktifkan perekaman video jika ini adalah tes 'smoke' atau 'regression'
     if is_flow_test:
         context_args["record_video_dir"] = str(TEMP_VIDEO_DIR)
+
+    header_array = [
+        ("Access-Code", os.getenv("ACCESS_CODE"))
+    ]
+
+    header_dic = dict(header_array)
+    context_args["extra_http_headers"] = header_dic
 
     ctx = browser.new_context(**context_args)
     request.node.context = ctx
@@ -87,6 +98,7 @@ def context(browser, request):
 
 @pytest.fixture(scope="function")
 def page(context, request):
+    
     page = context.new_page()
     request.node.page = page
     yield page
