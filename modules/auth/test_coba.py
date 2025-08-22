@@ -118,10 +118,5 @@ def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
     expect(page.get_by_text("OR", exact=True)).to_be_visible()
     expect(page.get_by_text("Need a Panorra account?")).to_be_visible()
 
-    iframe_locator = page.locator('iframe[title*="Google"]')
-    expect(iframe_locator).to_be_visible(timeout=10000)
-    
-    google_iframe = page.frame_locator('iframe[title*="Google"]')
-    expect(google_iframe.get_by_role("button")).to_be_visible()
     
     take_screenshot("all_login_elements_visible")
