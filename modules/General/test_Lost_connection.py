@@ -25,14 +25,7 @@ def test_lost_connection_page_appears(page: Page, base_url):
         # Simulate a lost connection
         print("Simulating connection lost...")
         page.context.set_offline(True)
-        
-        # Attempt an action that requires a network connection to trigger the UI
-        print("Attempting to navigate while offline...")
-        try:
-            page.get_by_role("link", name="Log In").click(timeout=5000)
-        except Exception:
-            print("Navigation failed as expected.")
-            
+                 
         # Verify the 'Lost Connection' page appears
         expect(page.get_by_role("heading", name="Connect with Internet")).to_be_visible()
         print("Test passed. Lost Connection page was displayed.")
@@ -101,12 +94,6 @@ def test_browser_back_button_on_lost_connection_page_for_guest(page: Page, base_
         page.goto(base_url, timeout=LONG_TIMEOUT)
         page.context.set_offline(True)
         
-        # Trigger the offline page
-        try:
-            page.get_by_role("link", name="Log In").click(timeout=5000)
-        except Exception:
-            pass
-        
         lost_connection_heading = page.get_by_role("heading", name="Connect with Internet")
         expect(lost_connection_heading).to_be_visible()
 
@@ -138,12 +125,6 @@ def test_lost_connection_page_ui_elements(page: Page, base_url, take_screenshot)
         # 2. Simulate a lost connection
         print("Simulating connection lost...")
         page.context.set_offline(True)
-        
-        # 3. Trigger the Lost Connection page
-        try:
-            page.get_by_role("link", name="Log In").click(timeout=5000)
-        except Exception:
-            pass
 
         # 4. Verify UI elements on the 'Lost Connection' page
         print("Verifying UI elements on the Lost Connection page...")

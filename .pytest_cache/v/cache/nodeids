@@ -26,6 +26,7 @@
   "modules/General/test_find_on_us.py::test_homepage_elements_are_visible_with_scroll",
   "modules/General/test_find_on_us.py::test_no_action_does_not_trigger_redirect",
   "modules/General/test_find_on_us.py::test_no_click_on_find_us_on_does_not_redirect",
+  "modules/General/test_privacy_police.py::test_privacy_policy_link_opens_correctly",
   "modules/General/test_terms_of_service.py::test_broken_tos_link_is_handled_gracefully",
   "modules/General/test_terms_of_service.py::test_no_click_on_tos_link_takes_no_action",
   "modules/General/test_terms_of_service.py::test_terms_of_service_link_opens_correctly",
