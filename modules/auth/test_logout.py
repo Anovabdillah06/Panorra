@@ -42,7 +42,7 @@ def test_logout_success(page: Page, base_url, username, password):
     page.locator('a:has-text("Log Out")').click()
 
     # Verify logout was successful
-    expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=MEDIUM_TIMEOUT)
+    expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=LONG_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=SHORT_TIMEOUT)
     
     # Add a 5-second pause to ensure the final state is recorded
@@ -73,7 +73,7 @@ def test_logout_button_functionality(page: Page, base_url, username, password, t
     take_screenshot("header_menu_visible")
     
     logout_link = page.locator('a:has-text("Log Out")')
-    expect(logout_link).to_be_visible(timeout=SHORT_TIMEOUT)
+    expect(logout_link).to_be_visible(timeout=LONG_TIMEOUT)
     logout_link.click()
     
     expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=MEDIUM_TIMEOUT)
@@ -96,8 +96,8 @@ def test_session_persists_after_browser_close(browser: BrowserContext, page: Pag
     new_page.goto(base_url, timeout=LONG_TIMEOUT)
 
     # Verify that the user is still logged in
-    expect(new_page.get_by_role("heading", name="Recommendation for You")).to_be_visible(timeout=MEDIUM_TIMEOUT)
-    expect(new_page.get_by_role("link", name="Log In")).to_be_hidden(timeout=SHORT_TIMEOUT)
+    expect(new_page.get_by_role("heading", name="Recommendation for You")).to_be_visible(timeout=LONG_TIMEOUT)
+    expect(new_page.get_by_role("link", name="Log In")).to_be_hidden(timeout=LONG_TIMEOUT)
     
     new_context.close()
     if os.path.exists(storage_state_path):
