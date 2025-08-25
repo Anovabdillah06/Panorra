@@ -6,23 +6,30 @@ from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright, Page
 
 def pytest_addoption(parser):
-    parser.addoption("--username", action="store", default=None, help="Username untuk login")
-    parser.addoption("--password", action="store", default=None, help="Password untuk login")
+    """Adds custom command-line options to pytest."""
+    parser.addoption("--username", action="store", default=None, help="Username for login")
+    parser.addoption("--password", action="store", default=None, help="Password for login")
 
+# Load environment variables from .env file
 load_dotenv()
 HEADLESS = os.getenv("HEADLESS", "true").lower() == "true"
 
+# Define base directories for test results
 RESULTS_DIR = Path("results")
 VIDEOS_DIR = RESULTS_DIR / "videos"
 SCREENSHOTS_DIR = RESULTS_DIR / "screenshots"
 TEMP_VIDEO_DIR = RESULTS_DIR / "temp_videos"
 
+# Create directories if they don't exist
 for folder in [VIDEOS_DIR, SCREENSHOTS_DIR, TEMP_VIDEO_DIR]:
     folder.mkdir(parents=True, exist_ok=True)
 
 @pytest.fixture(scope="session")
 def base_url(request):
+    """Fixture for the base URL of the application under test."""
     return request.config.getoption("--base-url") or os.getenv("BASE_URL", "https://dev.panorra.com/")
+
+# ... (fixtures lainnya tetap sama) ...
 
 @pytest.fixture(scope="session")
 def username(request):
@@ -43,41 +50,23 @@ def playwright_instance():
 
 @pytest.fixture(scope="session")
 def browser(playwright_instance):
-    # --- PERUBAHAN DI SINI ---
-    # Menambahkan channel="chrome" untuk menggunakan Google Chrome yang ter-install
     browser = playwright_instance.chromium.launch(headless=HEADLESS, channel="chrome")
     yield browser
     browser.close()
 
-# --- PENYESUAIAN LOGIKA PEREKAMAN VIDEO ---
 @pytest.fixture(scope="function")
 def context(browser, request):
-    # Cek apakah tes memiliki marker 'smoke' atau 'regression'
     is_flow_test = request.node.get_closest_marker("smoke") or request.node.get_closest_marker("regression")
-    
     context_args = {"viewport": {'width': 1280, 'height': 720}}
-
-    # Hanya aktifkan perekaman video jika ini adalah tes 'smoke' atau 'regression'
     if is_flow_test:
         context_args["record_video_dir"] = str(TEMP_VIDEO_DIR)
-
-    header_array = [
-        ("Access-Code", os.getenv("ACCESS_CODE"))
-    ]
-
-    header_dic = dict(header_array)
-    context_args["extra_http_headers"] = header_dic
-
+    context_args["extra_http_headers"] = {"Access-Code": os.getenv("ACCESS_CODE")}
     ctx = browser.new_context(**context_args)
     request.node.context = ctx
-    
     yield ctx
-    
     video_path = Path(ctx.pages[0].video.path()) if ctx.pages and ctx.pages[0].video else None
     ctx.close()
-    
     rep = getattr(request.node, "rep_call", None)
-    
     if rep and video_path and video_path.exists():
         try:
             status = "passed" if rep.passed else "failed"
@@ -85,26 +74,23 @@ def context(browser, request):
             test_module_name = Path(request.node.fspath).stem
             marker = next(request.node.iter_markers(), None)
             marker_name = marker.name if marker else "unmarked"
-
             video_dir_final = VIDEOS_DIR / marker_name / test_module_name / status
             video_dir_final.mkdir(parents=True, exist_ok=True)
             video_file_final = video_dir_final / f"{test_func_name}_{status}.webm"
-            
             video_path.rename(video_file_final)
             print(f"\n[Video saved] {video_file_final}")
-
         except Exception as e:
             print(f"\n[Video save failed] {e}")
 
 @pytest.fixture(scope="function")
 def page(context, request):
-    
     page = context.new_page()
     request.node.page = page
     yield page
 
 @pytest.fixture
 def take_screenshot(request, page: Page):
+    """Fixture for taking MANUAL, step-by-step screenshots during a test."""
     screenshot_counter = 0
     test_func_name = request.node.name
     test_module_name = Path(request.node.fspath).stem
@@ -117,19 +103,19 @@ def take_screenshot(request, page: Page):
         nonlocal screenshot_counter
         screenshot_counter += 1
         file_name = f"{test_func_name}_{screenshot_counter:02d}_{step_description}.png"
-        page.screenshot(path=base_path / file_name)
+        # --- PERUBAHAN DI SINI ---
+        page.screenshot(path=base_path / file_name, full_page=True)
     yield _take_screenshot
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    """Hook to capture test results and take screenshots on failure or success."""
     outcome = yield
     rep = outcome.get_result()
     
     if rep.when == "call":
         item.rep_call = rep
 
-    # --- PENYESUAIAN LOGIKA SCREENSHOT OTOMATIS ---
-    # Screenshot otomatis hanya berjalan untuk tes 'smoke' atau 'regression'
     is_flow_test = item.get_closest_marker("smoke") or item.get_closest_marker("regression")
     if rep.when == "call" and is_flow_test:
         page = getattr(item, "page", None)
@@ -146,14 +132,14 @@ def pytest_runtest_makereport(item, call):
             ss_file = ss_dir / f"{test_func_name}_{status}.png"
             
             try:
-                page.screenshot(path=str(ss_file))
+                # --- PERUBAHAN DI SINI ---
+                page.screenshot(path=str(ss_file), full_page=True)
                 print(f"\n[Screenshot saved] {ss_file}")
             except Exception as e:
                 print(f"\n[Screenshot failed] {e}")
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session):
+    """Clean up temporary video directory after the test session finishes."""
     if TEMP_VIDEO_DIR.exists():
         shutil.rmtree(TEMP_VIDEO_DIR)
-
-#done

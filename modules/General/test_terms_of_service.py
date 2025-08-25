@@ -142,7 +142,8 @@ def test_broken_tos_link_is_handled_gracefully(page: Page, base_url):
 def test_terms_of_service_page_ui_elements_with_scroll(page: Page, base_url, take_screenshot):
     """
     Verifies key UI elements on the Terms of Service page by scrolling
-    to each element, checking its visibility, and taking a screenshot.
+    to each element and checking its visibility. A single manual full-page screenshot
+    is taken at the end.
     """
     # 1. Navigate to the homepage and click the Terms of Service link
     page.goto(base_url, timeout=LONG_TIMEOUT)
@@ -155,7 +156,6 @@ def test_terms_of_service_page_ui_elements_with_scroll(page: Page, base_url, tak
     
     terms_page = new_page_info.value
     terms_page.wait_for_load_state(timeout=LONG_TIMEOUT)
-    take_screenshot("tos_page_loaded")
 
     # 2. Verify each element by scrolling to it first
     print("Verifying each element on the ToS page with a scroll...")
@@ -175,24 +175,15 @@ def test_terms_of_service_page_ui_elements_with_scroll(page: Page, base_url, tak
         terms_page.get_by_text('8. GENERAL')
     ]
 
-    # Loop to scroll, verify, and screenshot each element
+    # Loop to scroll and verify each element
     for element in elements_to_check:
-        # Scroll to the element
         element.scroll_into_view_if_needed(timeout=MEDIUM_TIMEOUT)
-        
-        # Verify that the element is visible after scrolling
         expect(element).to_be_visible()
-        
-        # Get the element's text for the filename
         element_text = element.inner_text().split('\n')[0]
-        
-        # Sanitize the text to make it a valid filename
-        screenshot_name = re.sub(r'[^a-zA-Z0-9]', '_', element_text).strip('_')[:50]
-        
-        # Take a screenshot for each verified element
-        take_screenshot(screenshot_name)
-        
-        print(f"  - Element '{element_text[:30]}...' is visible. Screenshot saved as {screenshot_name}.png")
+        print(f"  - Verified: '{element_text[:30]}...' is visible.")
     
-    print("\nUI Element Test for Terms of Service page passed successfully.")
+    # 3. Take ONE manual full-page screenshot after all verifications are successful
+    print("\nAll sections verified. Taking a final full-page screenshot...")
+    take_screenshot("full_page_verified")
+
     terms_page.close()

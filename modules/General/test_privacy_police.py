@@ -97,8 +97,8 @@ def test_broken_pp_link_is_handled_gracefully(page: Page, base_url):
 @pytest.mark.unit
 def test_privacy_policy_page_all_sections_are_visible(page: Page, base_url, take_screenshot):
     """
-    Verifies that all key sections and headings on the Privacy Policy page
-    are visible by scrolling, verifying, and taking a screenshot of each one.
+    Verifies that all key sections on the Privacy Policy page are visible.
+    A single manual full-page screenshot is taken at the end for documentation.
     """
     # 1. Navigate to the homepage and open the Privacy Policy page
     page.goto(base_url, timeout=LONG_TIMEOUT)
@@ -111,7 +111,6 @@ def test_privacy_policy_page_all_sections_are_visible(page: Page, base_url, take
     
     privacy_page = new_page_info.value
     privacy_page.wait_for_load_state(timeout=LONG_TIMEOUT)
-    take_screenshot("privacy_policy_page_loaded")
 
     # 2. Create a list of all elements to be verified on the page
     print("Verifying each section on the Privacy Policy page with a scroll...")
@@ -136,25 +135,15 @@ def test_privacy_policy_page_all_sections_are_visible(page: Page, base_url, take
         privacy_page.get_by_text('16. Updates')
     ]
 
-    # 3. Loop through the list, scroll to each element, verify, and take a screenshot
+    # 3. Loop through and verify each element is visible (this is fast)
     for element in elements_to_check:
-        # Scroll to the element to ensure it's in the viewport
         element.scroll_into_view_if_needed(timeout=MEDIUM_TIMEOUT)
-        
-        # Verify that the element is visible
         expect(element).to_be_visible()
-        
-        # --- SCREENSHOT FEATURE ADDED HERE ---
-        # Get the element's text for the filename
         element_text = element.inner_text().split('\n')[0]
-        
-        # Sanitize the text to make it a valid filename
-        screenshot_name = re.sub(r'[^a-zA-Z0-9]', '_', element_text).strip('_')[:50]
-        
-        # Take a screenshot for each verified element
-        take_screenshot(screenshot_name)
-        
-        print(f"  - Element '{element_text[:40]}...' is visible. Screenshot saved as {screenshot_name}.png")
+        print(f"  - Verified: '{element_text[:40]}...' is visible.")
+
+    # 4. Take ONE manual full-page screenshot after all verifications are successful
+    print("\nAll sections verified. Taking a final full-page screenshot...")
+    take_screenshot("Privacy_Policy_Elements")
     
-    print("\nUI Element Test for Privacy Policy page passed successfully.")
     privacy_page.close()

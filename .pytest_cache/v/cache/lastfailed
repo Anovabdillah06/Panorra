@@ -13,18 +13,8 @@
   "modules/General/test_ads.py::test_banner_link_opens_and_stays_on_new_page": true,
   "modules/General/test_ads.py::test_ad_click_redirects_successfully": true,
   "modules/General/test_ads.py::test_viewing_ad_does_not_redirect": true,
-  "modules/General/test_ads.py::test_banner_link_loads_new_page_successfully": true,
-  "modules/General/test_ads.py::test_verifies_staying_on_homepage_after_load": true,
-  "modules/General/test_ads.py::test_banner_is_visible_when_ads_are_blocked": true,
-  "modules/General/test_ads.py::test_malicious_redirect_is_prevented": true,
-  "modules/General/test_ads.py::test_homepage_key_elements_are_visible": true,
   "modules/General/test_find_on_us.py::test_all_app_store_links_are_correct": true,
   "modules/General/test_find_on_us.py::test_no_action_does_not_trigger_redirect": true,
-  "modules/General/test_find_on_us.py::test_app_store_links_with_original_locators": true,
-  "modules/General/test_find_on_us.py::test_no_click_on_find_us_on_does_not_redirect": true,
-  "modules/General/test_find_on_us.py::test_feature_load_failure_does_not_auto_redirect": true,
-  "modules/General/test_find_on_us.py::test_homepage_elements_are_visible": true,
-  "modules/General/test_alert_component.py::test_login_ui_and_alerts_flow": true,
   "modules/General/test_terms_of_service.py::test_terms_of_service_page_ui_elements": true,
   "modules/General/test_terms_of_service.py::test_terms_of_service_page_ui_elements_with_scroll": true,
   "modules/auth/test_logout.py::test_offline_logout_verifies_session_state": true,
@@ -40,6 +30,6 @@
   "modules/Profile/test_edit_profile.py::test_displays_error_alert_for_long_username": true,
   "modules/Profile/test_edit_profile.py::test_edit_profile_successfully": true,
   "modules/Profile/test_edit_profile.py::test_edit_profile_page_ui_elements": true,
-  "modules/General/test_Lost_connection.py::test_browser_back_button_on_lost_connection_page_for_guest": true,
-  "modules/auth/test_logout.py::test_logout_button_functionality": true
+  "modules/auth/test_logout.py::test_logout_button_functionality": true,
+  "modules/General/test_Lost_connection.py::test_lost_connection_page_appears": true
 }
