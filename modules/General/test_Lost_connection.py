@@ -49,12 +49,6 @@ def test_auto_recovers_to_login_page_for_guest(page: Page, base_url):
         # 2. Simulate a lost connection
         print("Simulating connection lost...")
         page.context.set_offline(True)
-
-        # 3. Attempt to navigate to trigger the offline UI
-        try:
-            page.get_by_role("link", name="Log In").click(timeout=5000)
-        except Exception:
-            pass # Continue as failure is expected
             
         # 4. Verify the 'Lost Connection' page appears
         expect(page.get_by_role("heading", name="Connect with Internet")).to_be_visible()
