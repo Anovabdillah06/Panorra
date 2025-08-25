@@ -36,52 +36,52 @@ def test_lost_connection_page_appears(page: Page, base_url):
     # Add a 5-second pause to ensure the final state is recorded
     page.wait_for_timeout(5000)
 
-# @pytest.mark.regression
-# def test_auto_recovers_to_login_page_for_guest(page: Page, base_url):
-#     """
-#     Verifies that the application automatically recovers from a lost connection
-#     and completes the intended navigation after the connection is restored.
-#     """
-#     try:
-#         # 1. Open the main page
-#         page.goto(base_url, timeout=LONG_TIMEOUT)
+@pytest.mark.regression
+def test_auto_recovers_to_login_page_for_guest(page: Page, base_url):
+    """
+    Verifies that the application automatically recovers from a lost connection
+    and completes the intended navigation after the connection is restored.
+    """
+    try:
+        # 1. Open the main page
+        page.goto(base_url, timeout=LONG_TIMEOUT)
         
-#         # 2. Simulate a lost connection
-#         print("Simulating connection lost...")
-#         page.context.set_offline(True)
+        # 2. Simulate a lost connection
+        print("Simulating connection lost...")
+        page.context.set_offline(True)
 
-#         # 3. Attempt to navigate to trigger the offline UI
-#         try:
-#             page.get_by_role("link", name="Log In").click(timeout=5000)
-#         except Exception:
-#             pass # Continue as failure is expected
+        # 3. Attempt to navigate to trigger the offline UI
+        try:
+            page.get_by_role("link", name="Log In").click(timeout=5000)
+        except Exception:
+            pass # Continue as failure is expected
             
-#         # 4. Verify the 'Lost Connection' page appears
-#         expect(page.get_by_role("heading", name="Connect with Internet")).to_be_visible()
-#         print("Lost Connection page was displayed as expected.")
+        # 4. Verify the 'Lost Connection' page appears
+        expect(page.get_by_role("heading", name="Connect with Internet")).to_be_visible()
+        print("Lost Connection page was displayed as expected.")
         
-#         # 5. Restore the connection
-#         print("Restoring connection...")
-#         page.context.set_offline(False)
-#         page.wait_for_timeout(5000)
-#         # 6. Verify automatic recovery
-#         #    We do not click anything, just wait for the application to recover
-#         #    and continue the navigation to the Login page.
-#         print("Waiting for auto-recovery and navigation to complete...")
+        # 5. Restore the connection
+        print("Restoring connection...")
+        page.context.set_offline(False)
+        page.wait_for_timeout(5000)
+        # 6. Verify automatic recovery
+        #    We do not click anything, just wait for the application to recover
+        #    and continue the navigation to the Login page.
+        print("Waiting for auto-recovery and navigation to complete...")
         
-#         # This assertion will wait until the heading on the Login page appears.
-#         # If the page recovers automatically, this element will be visible.
-#         expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=LONG_TIMEOUT)
+        # This assertion will wait until the heading on the Login page appears.
+        # If the page recovers automatically, this element will be visible.
+        expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=LONG_TIMEOUT)
         
-#         print("Test passed. Page auto-recovered to the Login page successfully.")
+        print("Test passed. Page auto-recovered to the Login page successfully.")
         
-#     finally:
-#         # Ensure the connection is always back online at the end of the test
-#         print("CLEANUP: Ensuring context is back online.")
-#         page.context.set_offline(False)
+    finally:
+        # Ensure the connection is always back online at the end of the test
+        print("CLEANUP: Ensuring context is back online.")
+        page.context.set_offline(False)
 
-#     # Add a 5-second pause to ensure the final state is recorded
-#     page.wait_for_timeout(5000)
+    # Add a 5-second pause to ensure the final state is recorded
+    page.wait_for_timeout(5000)
 
 @pytest.mark.regression
 def test_browser_back_button_on_lost_connection_page_for_guest(page: Page, base_url):
