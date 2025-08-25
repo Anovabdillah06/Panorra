@@ -7,9 +7,9 @@ from pathlib import Path
 # Helper
 # -------------------------------
 def fill_input(page: Page, placeholder: str, value: str):
-    """Fungsi bantuan untuk mengisi input form."""
+    """Helper function to fill a form input."""
     field = page.get_by_placeholder(placeholder)
-    # .fill() sudah otomatis membersihkan field, jadi .fill("") tidak diperlukan.
+    # .fill() automatically clears the field, so a preceding .fill("") is not needed.
     field.fill(value)
     return field
 
@@ -18,13 +18,13 @@ def fill_input(page: Page, placeholder: str, value: str):
 # -------------------------------
 @pytest.mark.smoke
 def test_login_success(page: Page, base_url, username, password):
-    """Memverifikasi login berhasil."""
-    # --- LANGKAH DEBUGGING DITAMBAHKAN ---
-    # Memeriksa respons halaman untuk memastikan tidak ada error akses (seperti 403 Forbidden)
+    """Verifies a successful login."""
+    # --- ADDED DEBUGGING STEPS ---
+    # Check the page response to ensure there are no access errors (like 403 Forbidden)
     print("Navigating to base_url...")
     response = page.goto(base_url, timeout=30000)
-    assert response.status < 400, f"Gagal memuat halaman utama. Status: {response.status}"
-    print(f"Halaman utama berhasil dimuat dengan status: {response.status}")
+    assert response.status < 400, f"Failed to load the main page. Status: {response.status}"
+    print(f"Main page loaded successfully with status: {response.status}")
 
     page.wait_for_load_state("domcontentloaded", timeout=30000)
     expect(page).to_have_title(re.compile("Panorra"), timeout=15000)
@@ -40,7 +40,7 @@ def test_login_success(page: Page, base_url, username, password):
     try:
         page.wait_for_load_state("networkidle", timeout=15000)
     except Exception as e:
-        print(f"Halaman tidak mencapai networkidle. Melanjutkan tes... Error: {e}")
+        print(f"Page did not reach networkidle. Continuing test... Error: {e}")
 
     heading = page.get_by_role("heading", name="Recommendation for You")
     expect(heading).to_be_visible(timeout=10000)
@@ -50,7 +50,7 @@ def test_login_success(page: Page, base_url, username, password):
 
 @pytest.mark.regression
 def test_login_invalid_credentials_password_or_username(page: Page, base_url, username):
-    """Memverifikasi error saat password salah."""
+    """Verifies the error message for an incorrect password."""
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)
 
@@ -68,7 +68,7 @@ def test_login_invalid_credentials_password_or_username(page: Page, base_url, us
 
 @pytest.mark.regression
 def test_login_button_disabled_when_empty(page: Page, base_url):
-    """Memverifikasi tombol login nonaktif saat form kosong."""
+    """Verifies the login button is disabled when the form is empty."""
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)
 
@@ -81,7 +81,7 @@ def test_login_button_disabled_when_empty(page: Page, base_url):
 
 @pytest.mark.regression
 def test_login_invalid_credentials(page: Page, base_url):
-    """Memverifikasi error saat username dan password salah."""
+    """Verifies the error message for incorrect username and password."""
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)
 
@@ -99,7 +99,7 @@ def test_login_invalid_credentials(page: Page, base_url):
 
 @pytest.mark.unit
 def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
-    """Tes unit untuk elemen UI di halaman login."""
+    """Unit test for UI elements on the login page."""
     page.goto(base_url, timeout=30000)
     page.wait_for_load_state("domcontentloaded", timeout=30000)
     take_screenshot("homepage_loaded")
@@ -109,7 +109,7 @@ def test_login_page_ui_elements(page: Page, base_url, take_screenshot):
     expect(page.get_by_role("heading", name="Log In to Panorra")).to_be_visible(timeout=10000)
     take_screenshot("login_page_loaded")
 
-    # Verifikasi semua elemen
+    # Verify all elements
     expect(page.get_by_placeholder("Enter your email or username")).to_be_visible()
     expect(page.get_by_placeholder("Enter your password")).to_be_visible()
     expect(page.get_by_text("Password", exact=True)).to_be_visible()
