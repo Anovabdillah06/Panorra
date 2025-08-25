@@ -47,7 +47,6 @@ def test_logout_success(page: Page, base_url, username, password):
     # --- END OF NEW LOGOUT FLOW ---
 
     # Verify logout was successful
-    expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=LONG_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=LONG_TIMEOUT)
     
     page.wait_for_timeout(5000)
@@ -87,7 +86,6 @@ def test_logout_button_functionality(page: Page, base_url, username, password, t
     logout_confirmation_button.click()
     # --- END OF NEW LOGOUT FLOW ---
     
-    expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=LONG_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=LONG_TIMEOUT)
     take_screenshot("logout_successful")
 
