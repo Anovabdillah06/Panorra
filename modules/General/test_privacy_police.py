@@ -134,7 +134,7 @@ def test_privacy_policy_page_all_sections_are_visible(page: Page, base_url, take
         privacy_page.get_by_text('CONTACT PREFERENCES'),
         privacy_page.get_by_text('16. Updates')
     ]
-
+    take_screenshot("Privacy_Policy_Elements")
     # 3. Loop through and verify each element is visible (this is fast)
     for element in elements_to_check:
         element.scroll_into_view_if_needed(timeout=MEDIUM_TIMEOUT)
@@ -144,6 +144,6 @@ def test_privacy_policy_page_all_sections_are_visible(page: Page, base_url, take
 
     # 4. Take ONE manual full-page screenshot after all verifications are successful
     print("\nAll sections verified. Taking a final full-page screenshot...")
-    take_screenshot("Privacy_Policy_Elements")
+    
     
     privacy_page.close()
