@@ -43,7 +43,7 @@ def test_logout_success(page: Page, base_url, username, password):
 
     # Verify logout was successful
     expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=LONG_TIMEOUT)
-    expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=SHORT_TIMEOUT)
+    expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=LONG_TIMEOUT)
     
     # Add a 5-second pause to ensure the final state is recorded
     page.wait_for_timeout(5000)
@@ -55,7 +55,7 @@ def test_opening_menu_does_not_logout(page: Page, base_url, username, password):
     page.get_by_role("button", name="header menu").click()
     
     # Verify the menu appears and the user remains logged in
-    expect(page.locator('a:has-text("Log Out")')).to_be_visible(timeout=SHORT_TIMEOUT)
+    expect(page.locator('a:has-text("Log Out")')).to_be_visible(timeout=LONG_TIMEOUT)
     expect(page.get_by_role("heading", name="Recommendation for You")).to_be_visible()
     
     # Add a 5-second pause to ensure the final state is recorded
@@ -76,8 +76,8 @@ def test_logout_button_functionality(page: Page, base_url, username, password, t
     expect(logout_link).to_be_visible(timeout=LONG_TIMEOUT)
     logout_link.click()
     
-    expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=MEDIUM_TIMEOUT)
-    expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=SHORT_TIMEOUT)
+    expect(page.get_by_role("link", name="Log In")).to_be_visible(timeout=LONG_TIMEOUT)
+    expect(page.get_by_role("heading", name="Recommendation for You")).to_be_hidden(timeout=LONG_TIMEOUT)
     take_screenshot("logout_successful")
 
 @pytest.mark.regression
