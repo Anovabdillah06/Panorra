@@ -184,6 +184,6 @@ def test_terms_of_service_page_ui_elements_with_scroll(page: Page, base_url, tak
     
     # 3. Take ONE manual full-page screenshot after all verifications are successful
     print("\nAll sections verified. Taking a final full-page screenshot...")
-    take_screenshot("full_page_verified")
+    take_screenshot("Terms_of_service_elements")
 
     terms_page.close()
